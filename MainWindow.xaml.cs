@@ -24,5 +24,13 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             InitializeComponent();
         }
+
+        private void Btn_saveConfig(object sender, RoutedEventArgs e)
+        {
+        }
+
+        private void Btn_openConfig(object sender, RoutedEventArgs e)
+        {
+        }
     }
 }

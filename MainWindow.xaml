@@ -5,8 +5,62 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VRC_OSC_ExternallyTrackedObject"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-
-    </Grid>
+        Title="VRC Externally Tracked Object" Width="350" ResizeMode="CanMinimize" SizeToContent="Height">
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open config file" Click="Btn_openConfig"></MenuItem>
+                <MenuItem Header="_Save config file" Click="Btn_saveConfig"></MenuItem>
+            </MenuItem>
+        </Menu>
+        <DockPanel>
+            <GroupBox Header="Global Settings" DockPanel.Dock="Top">
+                <Border BorderThickness="5,5,5,5">
+                    <StackPanel>
+                        <CheckBox Content="Start tracking when launched from config file" ToolTip="Automatically start tracking when this config file is loaded as a launch parameter"></CheckBox>
+                    </StackPanel>
+                </Border>
+            </GroupBox>
+            <TabControl>
+                <TabItem Header="Tracking">
+                    <StackPanel>
+                        <GroupBox Header="OSC">
+                            <StackPanel>
+                                <local:LabeledInput LabelText="OSC Input Address" x:Name="OSCInputAddress"></local:LabeledInput>
+                                <local:LabeledInput LabelText="OSC Output Address" x:Name="OSCOutputAddress"></local:LabeledInput>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Parameters">
+                            <StackPanel>
+                                <local:LabeledInput LabelText="Activate (bool) [optional]" x:Name="ParamTrigger"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Position X (float)" x:Name="ParamPosX"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Position Y (float)" x:Name="ParamPosY"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Position Z (float)" x:Name="ParamPosZ"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Rotation X (float)" x:Name="ParamRotX"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Rotation Y (float)" x:Name="ParamRotY"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Rotation Z (float)" x:Name="ParamRotZ"></local:LabeledInput>
+                            </StackPanel>
+                        </GroupBox>
+                        <Button Margin="5,5,5,5" Height="25">Start Tracking</Button>
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="Calibration">
+                    <StackPanel>
+                        <GroupBox Header="Calibration Values">
+                            <StackPanel>
+                                <local:LabeledInput LabelText="Scale" x:Name="CalibrationScale"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Translation X" x:Name="CalibrationPosX"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Translation Y" x:Name="CalibrationPosY"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Translation Z" x:Name="CalibrationPosZ"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Rotation X" x:Name="CalibrationRotX"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Rotation Y" x:Name="CalibrationRotY"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Rotation Z" x:Name="CalibrationRotZ"></local:LabeledInput>
+                            </StackPanel>
+                        </GroupBox>
+                        <Button Margin="5,5,5,5" Height="25">Start Calibration</Button>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+    </DockPanel>
 </Window>
