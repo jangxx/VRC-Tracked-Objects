@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VRC_OSC_ExternallyTrackedObject"
         mc:Ignorable="d"
+        x:Name="MainWindowName" PreviewKeyDown="MainWindowName_KeyDown"
         Title="VRC Externally Tracked Object" Width="350" ResizeMode="CanMinimize" SizeToContent="Height">
     <DockPanel>
         <Menu DockPanel.Dock="Top">
@@ -15,21 +16,34 @@
         </Menu>
         <DockPanel>
             <GroupBox Header="Global Settings" DockPanel.Dock="Top">
-                <Border BorderThickness="5,5,5,5">
-                    <StackPanel>
+                <StackPanel>
+                    <Border BorderThickness="5,5,5,5">
                         <CheckBox Content="Start tracking when launched from config file" ToolTip="Automatically start tracking when this config file is loaded as a launch parameter"></CheckBox>
-                    </StackPanel>
-                </Border>
+                    </Border>
+                    <local:LabeledInput LabelText="OSC Input Address" x:Name="OSCInputAddress"></local:LabeledInput>
+                    <local:LabeledInput LabelText="OSC Output Address" x:Name="OSCOutputAddress"></local:LabeledInput>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40"></ColumnDefinition>
+                            <ColumnDefinition Width="110"></ColumnDefinition>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="1*" />
+                            <RowDefinition Height="1*" />
+                        </Grid.RowDefinitions>
+                        <Button Grid.RowSpan="2" FontSize="9" VerticalAlignment="Center" Height="30">Refresh</Button>
+                        <Label  Grid.Column="1" Height="28" Content="Controller" HorizontalAlignment="Left"></Label>
+                        <ComboBox Grid.Column="2" Height="20" DisplayMemberPath="Name" SelectedValuePath="Id" x:Name="ControllerDropdown" SelectionChanged="ControllerDropdown_SelectionChanged" />
+                        <Label Grid.Row="1" Grid.Column="1" Height="28" Content="Tracked Device" HorizontalAlignment="Left"></Label>
+                        <ComboBox Grid.Row="1" Grid.Column="2" Height="20" DisplayMemberPath="Name" SelectedValuePath="Id" x:Name="TrackerDropdown" SelectionChanged="TrackerDropdown_SelectionChanged" />
+                    </Grid>
+                </StackPanel>
             </GroupBox>
+            <ComboBox DockPanel.Dock="Top" Margin="5,5,5,5" DisplayMemberPath="Name" SelectedValuePath="Id" x:Name="AvatarDropdown" SelectionChanged="AvatarDropdown_SelectionChanged" />
             <TabControl>
                 <TabItem Header="Tracking">
                     <StackPanel>
-                        <GroupBox Header="OSC">
-                            <StackPanel>
-                                <local:LabeledInput LabelText="OSC Input Address" x:Name="OSCInputAddress"></local:LabeledInput>
-                                <local:LabeledInput LabelText="OSC Output Address" x:Name="OSCOutputAddress"></local:LabeledInput>
-                            </StackPanel>
-                        </GroupBox>
                         <GroupBox Header="Parameters">
                             <StackPanel>
                                 <local:LabeledInput LabelText="Activate (bool) [optional]" x:Name="ParamTrigger"></local:LabeledInput>
@@ -41,7 +55,7 @@
                                 <local:LabeledInput LabelText="Rotation Z (float)" x:Name="ParamRotZ"></local:LabeledInput>
                             </StackPanel>
                         </GroupBox>
-                        <Button Margin="5,5,5,5" Height="25">Start Tracking</Button>
+                        <Button Margin="5,5,5,5" Height="25" x:Name="StartTrackingButton" Click="StartTrackingButton_Click">Start Tracking</Button>
                     </StackPanel>
                 </TabItem>
                 <TabItem Header="Calibration">
@@ -57,7 +71,20 @@
                                 <local:LabeledInput LabelText="Rotation Z" x:Name="CalibrationRotZ"></local:LabeledInput>
                             </StackPanel>
                         </GroupBox>
-                        <Button Margin="5,5,5,5" Height="25">Start Calibration</Button>
+                        <Button Margin="5,5,5,5" Height="25" x:Name="StartCalibrationButton" Click="StartCalibrationButton_Click">Start Calibration</Button>
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="Avatars">
+                    <StackPanel>
+                        <ListBox Margin="5,5,5,5"  Height="100" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="AvatarListBox"/>
+                        <Button Margin="5,0,5,5" Height="20" Click="Btn_deleteAvatar">Delete</Button>
+                        <GroupBox Header="Add avatar">
+                            <StackPanel>
+                                <local:LabeledInput LabelText="Avatar ID" x:Name="NewAvatarId"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Avatar Name" x:Name="NewAvatarName"></local:LabeledInput>
+                                <Button Margin="5,5,5,5" Height="20" Click="Btn_addAvatar">Add</Button>
+                            </StackPanel>
+                        </GroupBox>
                     </StackPanel>
                 </TabItem>
             </TabControl>
