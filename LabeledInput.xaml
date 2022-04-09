@@ -7,12 +7,12 @@
              mc:Ignorable="d" 
              DataContext="{Binding RelativeSource={RelativeSource Self}}"
              d:DesignHeight="30" d:DesignWidth="350">
-    <Grid>
+    <Grid Height="30" x:Name="OuterShell">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="150"></ColumnDefinition>
             <ColumnDefinition Width="*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Label Height="28" Content="{Binding LabelText}" HorizontalAlignment="Left"></Label>
-        <TextBox Grid.Column="1" Height="20" Text="{Binding InputText}"></TextBox>
+        <TextBox Grid.Column="1" Height="20" Text="{Binding InputText}" Margin="0,0,5,0"></TextBox>
     </Grid>
 </UserControl>

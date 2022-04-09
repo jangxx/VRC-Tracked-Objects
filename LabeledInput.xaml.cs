@@ -36,11 +36,38 @@ namespace VRC_OSC_ExternallyTrackedObject
         public static readonly DependencyProperty InputTextProperty =
             DependencyProperty.Register("InputText", typeof(string), typeof(LabeledInput), new PropertyMetadata(null));
 
+        public bool Highlighted
+        {
+            get { return (bool)GetValue(HighlightedProperty); }
+            set { SetValue(HighlightedProperty, value); }
+        }
+        public static readonly DependencyProperty HighlightedProperty =
+            DependencyProperty.Register("Highlighted", typeof(bool), typeof(LabeledInput), new PropertyMetadata(null));
+
         public LabeledInput()
         {
             InitializeComponent();
         }
 
+        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+        {
+            if (e.Property == HighlightedProperty)
+            {
+                bool val = (bool)e.NewValue;
 
+                if (val)
+                {
+                    OuterShell.Background = new SolidColorBrush(Colors.Red);
+                }
+                else
+                {
+                    OuterShell.Background = null;
+                }
+            }
+            else
+            {
+                base.OnPropertyChanged(e);
+            }
+        }
     }
 }

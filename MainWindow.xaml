@@ -32,15 +32,15 @@
                             <RowDefinition Height="1*" />
                             <RowDefinition Height="1*" />
                         </Grid.RowDefinitions>
-                        <Button Grid.RowSpan="2" FontSize="9" VerticalAlignment="Center" Height="30">Refresh</Button>
+                        <Button Grid.RowSpan="2" FontSize="9" VerticalAlignment="Center" Height="30" Click="DevicesRefresh_Click">Refresh</Button>
                         <Label  Grid.Column="1" Height="28" Content="Controller" HorizontalAlignment="Left"></Label>
-                        <ComboBox Grid.Column="2" Height="20" DisplayMemberPath="Name" SelectedValuePath="Id" x:Name="ControllerDropdown" SelectionChanged="ControllerDropdown_SelectionChanged" />
+                        <ComboBox Grid.Column="2" Height="20" x:Name="ControllerDropdown" SelectionChanged="ControllerDropdown_SelectionChanged" DisplayMemberPath="DisplayName" SelectedValuePath="Serial" />
                         <Label Grid.Row="1" Grid.Column="1" Height="28" Content="Tracked Device" HorizontalAlignment="Left"></Label>
-                        <ComboBox Grid.Row="1" Grid.Column="2" Height="20" DisplayMemberPath="Name" SelectedValuePath="Id" x:Name="TrackerDropdown" SelectionChanged="TrackerDropdown_SelectionChanged" />
+                        <ComboBox Grid.Row="1" Grid.Column="2" Height="20" x:Name="TrackerDropdown" SelectionChanged="TrackerDropdown_SelectionChanged" DisplayMemberPath="DisplayName" SelectedValuePath="Serial" />
                     </Grid>
                 </StackPanel>
             </GroupBox>
-            <ComboBox DockPanel.Dock="Top" Margin="5,5,5,5" DisplayMemberPath="Name" SelectedValuePath="Id" x:Name="AvatarDropdown" SelectionChanged="AvatarDropdown_SelectionChanged" />
+            <ComboBox DockPanel.Dock="Top" Margin="5,5,5,5" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="AvatarDropdown" SelectionChanged="AvatarDropdown_SelectionChanged" />
             <TabControl>
                 <TabItem Header="Tracking">
                     <StackPanel>
@@ -62,7 +62,7 @@
                     <StackPanel>
                         <GroupBox Header="Calibration Values">
                             <StackPanel>
-                                <local:LabeledInput LabelText="Scale" x:Name="CalibrationScale"></local:LabeledInput>
+                                <local:LabeledInput LabelText="Scale" x:Name="CalibrationScale"/>
                                 <local:LabeledInput LabelText="Translation X" x:Name="CalibrationPosX"></local:LabeledInput>
                                 <local:LabeledInput LabelText="Translation Y" x:Name="CalibrationPosY"></local:LabeledInput>
                                 <local:LabeledInput LabelText="Translation Z" x:Name="CalibrationPosZ"></local:LabeledInput>

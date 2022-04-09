@@ -1,5 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.Win32;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -61,6 +66,23 @@ namespace VRC_OSC_ExternallyTrackedObject
         }
     }
 
+    internal class DeviceListItem
+    {
+        public string Serial { get; set; }
+        public bool Exists { get; set; }
+        public string DisplayName
+        {
+            get { return Serial + ((!Exists) ? " (Not found)" : ""); }
+        }
+
+        public DeviceListItem(string serial, bool exists = true)
+        {
+            Serial = serial;
+            Exists = exists;
+        }
+    }
+    
+
     //public class MainWindowProperties : INotifyPropertyChanged
     //{
     //    public event PropertyChangedEventHandler PropertyChanged;
@@ -92,18 +114,29 @@ namespace VRC_OSC_ExternallyTrackedObject
     {
         private Configuration CurrentConfig = new Configuration();
         private ObservableCollection<AvatarListItem> AvatarList = new ObservableCollection<AvatarListItem>();
+        private ObservableCollection<DeviceListItem> ControllerList = new ObservableCollection<DeviceListItem>();
+        private ObservableCollection<DeviceListItem> TrackerList = new ObservableCollection<DeviceListItem>();
         //public MainWindowProperties DisplayProperties { get; set; }
         private OpenVRManager OpenVRManager = new OpenVRManager();
+        private string? CurrentAvatarId;
 
         public MainWindow()
         {
             InitializeComponent();
             this.DataContext = this;
 
-            AvatarList.Add(new AvatarListItem("ididiid", "namenamenae"));
+            AvatarList.Add(new AvatarListItem("testid", "test name"));
+
+            var config = new AvatarConfig();
+            config.Name = "test name";
+
+            CurrentConfig.Avatars.Add("testid", config);
 
             AvatarDropdown.ItemsSource = AvatarList;
             AvatarListBox.ItemsSource = AvatarList;
+
+            ControllerDropdown.ItemsSource = ControllerList;
+            TrackerDropdown.ItemsSource = TrackerList;
 
             //this.DisplayProperties = new MainWindowProperties();
             //this.DisplayProperties.AllInputsEnabled = true;
@@ -113,15 +146,181 @@ namespace VRC_OSC_ExternallyTrackedObject
                 AvatarDropdown.SelectedIndex = 0;
             }
 
+            this.OpenVRManager.CalibrationUpdate += OnCalibrationUpdate;
+
             this.OpenVRManager.InitOverlay();
+            UpdateControllersAndTrackers();
+        }
+
+        // this will be called within the calibration thread so we need to inject the event back into the UI thread
+        private void OnCalibrationUpdate(object? sender, EventArgs args)
+        {
+            Dictionary<CalibrationField, LabeledInput> fields = new Dictionary<CalibrationField, LabeledInput>()
+            {
+                { CalibrationField.POSX, CalibrationPosX },
+                { CalibrationField.POSY, CalibrationPosY },
+                { CalibrationField.POSZ, CalibrationPosZ },
+                { CalibrationField.ROTX, CalibrationRotX },
+                { CalibrationField.ROTY, CalibrationRotY },
+                { CalibrationField.ROTZ, CalibrationRotZ },
+                { CalibrationField.SCALE, CalibrationScale },
+            };
+
+            var calibrationUpdateArgs = (CalibrationUpdateArgs)args;
+
+            var dispatcher = Application.Current.Dispatcher;
+            dispatcher.BeginInvoke(new Action(() =>
+            {
+                switch(calibrationUpdateArgs.Type)
+                {
+                    case CalibrationUpdateArgs.CalibrationUpdateType.ACTIVE_FIELD:
+                        CalibrationScale.Highlighted = false;
+                        CalibrationPosX.Highlighted = false;
+                        CalibrationPosY.Highlighted = false;
+                        CalibrationPosZ.Highlighted = false;
+                        CalibrationRotX.Highlighted = false;
+                        CalibrationRotY.Highlighted = false;
+                        CalibrationRotZ.Highlighted = false;
+
+                        fields[calibrationUpdateArgs.Field].Highlighted = true;
+
+                        break;
+                    case CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE:
+                        fields[calibrationUpdateArgs.Field].InputText = calibrationUpdateArgs.FloatValue.ToString();
+                        updateCalibrationValue(calibrationUpdateArgs.Field, calibrationUpdateArgs.FloatValue);
+                        break;
+                }
+            }));
+        }
+
+        private void updateCalibrationValue(CalibrationField field, float value)
+        {
+            if (CurrentAvatarId == null) return;
+
+            switch(field)
+            {
+                case CalibrationField.POSX:
+                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.TranslationX = value;
+                    return;
+                case CalibrationField.POSY:
+                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.TranslationY = value;
+                    return;
+                case CalibrationField.POSZ:
+                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.TranslationZ = value;
+                    return;
+                case CalibrationField.ROTX:
+                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.RotationX = value;
+                    return;
+                case CalibrationField.ROTY:
+                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.RotationY = value;
+                    return;
+                case CalibrationField.ROTZ:
+                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.RotationZ = value;
+                    return;
+                case CalibrationField.SCALE:
+                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.Scale = value;
+                    return;
+            }
+        }
+
+        private void CopySettingsToConfig()
+        {
+            CurrentConfig.OscInputAddress = OSCInputAddress.InputText;
+            CurrentConfig.OscOutputAddress = OSCOutputAddress.InputText;
         }
 
         private void Btn_saveConfig(object sender, RoutedEventArgs e)
         {
+            if (CurrentAvatarId != null)
+            {
+                CopyInputValuesToConfig(CurrentConfig.Avatars[CurrentAvatarId]);
+            }
+
+            CopySettingsToConfig();
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "JSON file|*.json";
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                string jsonString = JsonSerializer.Serialize(CurrentConfig, new JsonSerializerOptions() { WriteIndented = true });
+                File.WriteAllText(saveFileDialog.FileName, jsonString);
+            }
         }
 
-        private void Btn_openConfig(object sender, RoutedEventArgs e)
+        public void LoadConfig(String path)
         {
+            string jsonString = File.ReadAllText(path);
+
+            if (jsonString == null) return;
+
+            Configuration config = new Configuration();
+
+            try
+            {
+                config = JsonSerializer.Deserialize<Configuration>(jsonString);
+            }
+            catch (JsonException ex)
+            {
+                MessageBox.Show("Could not parse config file: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (config == null) return;
+
+            CurrentConfig = config;
+
+            if (CurrentConfig.ControllerSerial != null && CurrentConfig.ControllerSerial.Length > 0) {
+                bool found = false;
+
+                for (int i = 0; i < ControllerList.Count; i++)
+                {
+                    if (ControllerList[i].Serial == CurrentConfig.ControllerSerial)
+                    {
+                        ControllerDropdown.SelectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    ControllerList.Add(new DeviceListItem(CurrentConfig.ControllerSerial, false));
+                }
+            }
+
+            if (CurrentConfig.TrackerSerial != null && CurrentConfig.TrackerSerial.Length > 0)
+            {
+                bool found = false;
+
+                for (int i = 0; i < TrackerList.Count; i++)
+                {
+                    if (TrackerList[i].Serial == CurrentConfig.TrackerSerial)
+                    {
+                        TrackerDropdown.SelectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    TrackerList.Add(new DeviceListItem(CurrentConfig.TrackerSerial, false));
+                }
+            }
+
+            OSCInputAddress.InputText = CurrentConfig.OscInputAddress;
+            OSCOutputAddress.InputText = CurrentConfig.OscOutputAddress;
+
+        }
+
+            private void Btn_openConfig(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "JSON file|*.json";
+            if (openFileDialog.ShowDialog() == true)
+            {
+                LoadConfig(openFileDialog.FileName);
+            }
         }
 
         private void Btn_addAvatar(object sender, RoutedEventArgs e)
@@ -173,7 +372,19 @@ namespace VRC_OSC_ExternallyTrackedObject
                 return;
             }
 
-            var currentAvatarId = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
+            // first, store all the current input values in the config object
+            if (CurrentAvatarId != null)
+            {
+                var currentAvatarConfig = CurrentConfig.Avatars[CurrentAvatarId];
+                CopyInputValuesToConfig(currentAvatarConfig);
+            }
+
+            // afterwards switch everything over to the new avatar
+            CurrentAvatarId = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
+            var avatarConfig = CurrentConfig.Avatars[CurrentAvatarId];
+
+            FillAndEnableAllInputs(avatarConfig);
+
         }
 
         private void ClearAndDisableAllInputs()
@@ -211,44 +422,113 @@ namespace VRC_OSC_ExternallyTrackedObject
             StartCalibrationButton.IsEnabled = false;
         }
 
+        private void FillAllCalibrationInputs(AvatarCalibration calibration)
+        {
+            CalibrationScale.InputText = calibration.Scale.ToString();
+            CalibrationPosX.InputText = calibration.TranslationX.ToString();
+            CalibrationPosY.InputText = calibration.TranslationY.ToString();
+            CalibrationPosZ.InputText = calibration.TranslationZ.ToString();
+            CalibrationRotX.InputText = calibration.RotationX.ToString();
+            CalibrationRotY.InputText = calibration.RotationY.ToString();
+            CalibrationRotZ.InputText = calibration.RotationZ.ToString();
+        }
+
+        private void ControlAllCalibrationInputs(bool enabled)
+        {
+            CalibrationScale.IsEnabled = enabled;
+            CalibrationPosX.IsEnabled = enabled;
+            CalibrationPosY.IsEnabled = enabled;
+            CalibrationPosZ.IsEnabled = enabled;
+            CalibrationRotX.IsEnabled = enabled;
+            CalibrationRotY.IsEnabled = enabled;
+            CalibrationRotZ.IsEnabled = enabled;
+        }
+
+        private void FillAllParameterInputs(AvatarParams parameters)
+        {
+            ParamTrigger.InputText = parameters.Activate;
+            ParamPosX.InputText = parameters.PositionX;
+            ParamPosY.InputText = parameters.PositionY;
+            ParamPosZ.InputText = parameters.PositionZ;
+            ParamRotX.InputText = parameters.RotationX;
+            ParamRotY.InputText = parameters.RotationY;
+            ParamRotZ.InputText = parameters.RotationZ;
+        }
+
+        private void ControlAllParameterInputs(bool enabled)
+        {
+            ParamTrigger.IsEnabled = enabled;
+            ParamPosX.IsEnabled = enabled;
+            ParamPosY.IsEnabled = enabled;
+            ParamPosZ.IsEnabled = enabled;
+            ParamRotX.IsEnabled = enabled;
+            ParamRotY.IsEnabled = enabled;
+            ParamRotZ.IsEnabled = enabled;
+        }
+
         private void FillAndEnableAllInputs(AvatarConfig config)
         {
-            ParamTrigger.InputText = config.Parameters.Activate;
-            ParamTrigger.IsEnabled= true;
-            ParamPosX.InputText = config.Parameters.PositionX;
-            ParamPosX.IsEnabled= true;
-            ParamPosY.InputText = config.Parameters.PositionY;
-            ParamPosY.IsEnabled= true;
-            ParamPosZ.InputText = config.Parameters.PositionZ;
-            ParamPosZ.IsEnabled= true;
-            ParamRotX.InputText = config.Parameters.RotationX;
-            ParamRotX.IsEnabled= true;
-            ParamRotY.InputText = config.Parameters.RotationY;
-            ParamRotY.IsEnabled= true;
-            ParamRotZ.InputText = config.Parameters.RotationZ;
-            ParamRotZ.IsEnabled= true;
-            CalibrationScale.InputText = config.Calibration.Scale.ToString();
-            CalibrationScale.IsEnabled= true;
-            CalibrationPosX.InputText = config.Calibration.TranslationX.ToString();
-            CalibrationPosX.IsEnabled= true;
-            CalibrationPosY.InputText = config.Calibration.TranslationY.ToString();
-            CalibrationPosY.IsEnabled= true;
-            CalibrationPosZ.InputText = config.Calibration.TranslationZ.ToString();
-            CalibrationPosZ.IsEnabled= true;
-            CalibrationRotX.InputText = config.Calibration.RotationX.ToString();
-            CalibrationRotX.IsEnabled= true;
-            CalibrationRotY.InputText = config.Calibration.RotationY.ToString();
-            CalibrationRotY.IsEnabled= true;
-            CalibrationRotZ.InputText = config.Calibration.RotationZ.ToString();
-            CalibrationRotZ.IsEnabled= true;
+            FillAllParameterInputs(config.Parameters);
+            ControlAllParameterInputs(true);
+            FillAllCalibrationInputs(config.Calibration);
+            ControlAllCalibrationInputs(true);
 
-            StartTrackingButton.IsEnabled= true;
-            StartCalibrationButton.IsEnabled= true;
+            StartTrackingButton.IsEnabled = true;
+            StartCalibrationButton.IsEnabled = true;
+        }
+
+        private void CopyInputValuesToConfig(AvatarConfig config)
+        {
+            config.Parameters.Activate = ParamTrigger.InputText;
+            config.Parameters.PositionX = ParamPosX.InputText;
+            config.Parameters.PositionY = ParamPosY.InputText;
+            config.Parameters.PositionZ = ParamPosZ.InputText;
+            config.Parameters.RotationX = ParamRotX.InputText;
+            config.Parameters.RotationY = ParamRotY.InputText;
+            config.Parameters.RotationZ = ParamRotZ.InputText;
+            config.Calibration.Scale = float.Parse(CalibrationScale.InputText, CultureInfo.InvariantCulture);
+            config.Calibration.TranslationX = float.Parse(CalibrationPosX.InputText, CultureInfo.InvariantCulture);
+            config.Calibration.TranslationY = float.Parse(CalibrationPosY.InputText, CultureInfo.InvariantCulture);
+            config.Calibration.TranslationZ = float.Parse(CalibrationPosZ.InputText, CultureInfo.InvariantCulture);
+            config.Calibration.RotationX = float.Parse(CalibrationRotX.InputText, CultureInfo.InvariantCulture);
+            config.Calibration.RotationY = float.Parse(CalibrationRotY.InputText, CultureInfo.InvariantCulture);
+            config.Calibration.RotationZ = float.Parse(CalibrationRotZ.InputText, CultureInfo.InvariantCulture);
         }
 
         private void StartCalibrationButton_Click(object sender, RoutedEventArgs e)
         {
-            //this.OpenVRManager.StartCalibrationThread();
+            if (this.OpenVRManager.IsAnyThreadRunning())
+            {
+                StartCalibrationButton.Content = "Start Calibration";
+                StartTrackingButton.IsEnabled = true;
+
+                this.OpenVRManager.StopThread();
+
+                // clear highlight as well
+                CalibrationScale.Highlighted = false;
+                CalibrationPosX.Highlighted = false;
+                CalibrationPosY.Highlighted = false;
+                CalibrationPosZ.Highlighted = false;
+                CalibrationRotX.Highlighted = false;
+                CalibrationRotY.Highlighted = false;
+                CalibrationRotZ.Highlighted = false;
+            } 
+            else
+            {
+                if (ControllerDropdown.SelectedItem == null || AvatarDropdown.SelectedItem == null) return;
+
+                string currentController = (string)ControllerDropdown.SelectedItem;
+                string currentAvatar = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
+
+                // copy the current calibration to the calibration thread
+                // updates are then sent by the calibration thread via events
+                AvatarCalibration calibration = CurrentConfig.Avatars[currentAvatar].Calibration;
+
+                StartCalibrationButton.Content = "Stop Calibration";
+                StartTrackingButton.IsEnabled = false;
+
+                this.OpenVRManager.StartCalibrationThread(currentController, calibration);
+            }
         }
 
         private void StartTrackingButton_Click(object sender, RoutedEventArgs e)
@@ -273,12 +553,46 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         private void TrackerDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (sender == null) return;
 
+            object selectedValue = (sender as ComboBox).SelectedValue;
+
+            if (selectedValue == null) return;
+
+            CurrentConfig.TrackerSerial = (string)selectedValue;
         }
 
         private void ControllerDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (sender == null) return;
 
+            object selectedValue = (sender as ComboBox).SelectedValue;
+
+            if (selectedValue == null) return;
+
+            CurrentConfig.ControllerSerial = (string)selectedValue;
+        }
+
+        private void UpdateControllersAndTrackers()
+        {
+            this.OpenVRManager.UpdateControllers();
+
+            this.ControllerList.Clear();
+            foreach (string controllerId in this.OpenVRManager.GetControllers())
+            {
+                this.ControllerList.Add(new DeviceListItem(controllerId));
+            }
+
+            this.TrackerList.Clear();
+            foreach (string trackerId in this.OpenVRManager.GetTrackers())
+            {
+                this.TrackerList.Add(new DeviceListItem(trackerId));
+            }
+        }
+
+        private void DevicesRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateControllersAndTrackers();
         }
     }
 }
