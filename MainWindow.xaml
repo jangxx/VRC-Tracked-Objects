@@ -42,7 +42,7 @@
             </GroupBox>
             <ComboBox DockPanel.Dock="Top" Margin="5,5,5,5" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="AvatarDropdown" SelectionChanged="AvatarDropdown_SelectionChanged" />
             <TabControl>
-                <TabItem Header="Tracking">
+                <TabItem Header="Tracking" x:Name="TrackingTab">
                     <StackPanel>
                         <GroupBox Header="Parameters">
                             <StackPanel>
@@ -58,7 +58,7 @@
                         <Button Margin="5,5,5,5" Height="25" x:Name="StartTrackingButton" Click="StartTrackingButton_Click">Start Tracking</Button>
                     </StackPanel>
                 </TabItem>
-                <TabItem Header="Calibration">
+                <TabItem Header="Calibration" x:Name="CalibrationTab">
                     <StackPanel>
                         <GroupBox Header="Calibration Values">
                             <StackPanel>
@@ -74,7 +74,7 @@
                         <Button Margin="5,5,5,5" Height="25" x:Name="StartCalibrationButton" Click="StartCalibrationButton_Click">Start Calibration</Button>
                     </StackPanel>
                 </TabItem>
-                <TabItem Header="Avatars">
+                <TabItem Header="Avatars" x:Name="AvatarsTab">
                     <StackPanel>
                         <ListBox Margin="5,5,5,5"  Height="100" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="AvatarListBox"/>
                         <Button Margin="5,0,5,5" Height="20" Click="Btn_deleteAvatar">Delete</Button>

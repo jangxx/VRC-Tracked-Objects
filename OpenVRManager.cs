@@ -54,6 +54,8 @@ namespace VRC_OSC_ExternallyTrackedObject
         private Thread? currentThread = null;
         private AvatarCalibration? currentCalibration;
         private bool calibrationThreadRunning = false;
+        private bool trackingThreadRunning = false;
+        private bool trackingEnabled = false;
         private Dictionary<string, uint> Controllers = new Dictionary<string, uint>();
         private Dictionary<string, uint> Trackers = new Dictionary<string, uint>();
 
@@ -182,7 +184,7 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
         }
 
-        public void StartTrackingThread()
+        public void StartTrackingThread(string controllerSn, string trackerSn, AvatarCalibration avatarCalibration)
         {
             if (currentThread != null) return;
         }
