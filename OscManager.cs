@@ -14,22 +14,31 @@ namespace VRC_OSC_ExternallyTrackedObject
         public bool Active { get; set; }
     }
 
+    public class AvatarChangedArgs : EventArgs
+    {
+        public string Id { get; set; }
+    }
+
     internal class OscManager
     {
+        private static string AVATAR_CHANGE_ADDRESS = "/avatar/change";
+
         private CancellationTokenSource CancelTokenSource = new CancellationTokenSource();
         private Thread? currentThread = null;
-        private AvatarParams? currentConfig = null;
+        private Dictionary<string, AvatarConfig>? currentConfig = null;
+        private string currentAvatar = null;
         private bool currentlyActive = false;
         private OscSender? oscSender;
         private OscReceiver? oscReceiver;
 
         public EventHandler? TrackingActiveChanged;
+        public EventHandler? AvatarChanged;
 
-        public void Start(string inputAddress, int inputPort, string outputAddress, int outputPort, AvatarParams avParams)
+        public void Start(string inputAddress, int inputPort, string outputAddress, int outputPort, Dictionary<string, AvatarConfig> config)
         {
             oscSender = new OscSender(System.Net.IPAddress.Parse(outputAddress), outputPort);
             oscReceiver = new OscReceiver(System.Net.IPAddress.Parse(inputAddress), inputPort);
-            currentConfig = avParams;
+            currentConfig = config;
 
             currentThread = new Thread(new ThreadStart(ListenThread));
         }
@@ -47,7 +56,18 @@ namespace VRC_OSC_ExternallyTrackedObject
                         OscPacket packet = oscReceiver.Receive();
                         OscMessage msg = OscMessage.Parse(packet.ToString());
                         
-                        if (msg.Address == currentConfig.Activate && msg.Count > 0)
+                        if (msg.Address == AVATAR_CHANGE_ADDRESS && msg.Count > 0)
+                        {
+                            currentAvatar = (string)msg[0];
+
+                            var args = new AvatarChangedArgs() { Id = currentAvatar };
+                            var handler = AvatarChanged;
+                            handler?.Invoke(this, args);
+                        } 
+                        else if (currentAvatar != null 
+                            && currentConfig.ContainsKey(currentAvatar)
+                            && msg.Address == currentConfig[currentAvatar].Parameters.Activate 
+                            && msg.Count > 0)
                         {
                             bool activate = (bool)msg[0];
 
@@ -101,17 +121,17 @@ namespace VRC_OSC_ExternallyTrackedObject
                 throw new Exception("SendValues was called without the OSC manager being set up");
             }
 
-            if (!this.currentlyActive)
+            if (!this.currentlyActive || currentAvatar == null || !this.currentConfig.ContainsKey(currentAvatar))
             {
                 return; // discard the message to not spam the game with useless messages
             }
 
-            oscSender.Send(new OscMessage(this.currentConfig.PositionX, posX));
-            oscSender.Send(new OscMessage(this.currentConfig.PositionY, posY));
-            oscSender.Send(new OscMessage(this.currentConfig.PositionZ, posZ));
-            oscSender.Send(new OscMessage(this.currentConfig.RotationX, rotX));
-            oscSender.Send(new OscMessage(this.currentConfig.RotationY, rotY));
-            oscSender.Send(new OscMessage(this.currentConfig.RotationZ, rotZ));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.PositionX, posX));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.PositionY, posY));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.PositionZ, posZ));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.RotationX, rotX));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.RotationY, rotY));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.RotationZ, rotZ));
         }
     }
 }

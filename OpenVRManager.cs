@@ -46,7 +46,13 @@ namespace VRC_OSC_ExternallyTrackedObject
         public CalibrationField Field { get; set; }
     }
 
-    internal class OpenVRManager
+    public class TrackingDataArgs : EventArgs
+    {
+        public Matrix<float>? Controller { get; set; }
+        public Matrix<float>? Tracker { get; set; }
+    }
+
+        internal class OpenVRManager
     {
         private CVRSystem? cVR;
         private BlockingCollection<Key> InputKeyQueue = new BlockingCollection<Key>();
@@ -60,6 +66,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         private Dictionary<string, uint> Trackers = new Dictionary<string, uint>();
 
         public event EventHandler? CalibrationUpdate;
+        public event EventHandler? TrackingData;
 
         public OpenVRManager()
         {
@@ -184,14 +191,61 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
         }
 
-        public void StartTrackingThread(string controllerSn, string trackerSn, AvatarCalibration avatarCalibration)
+        public void SetTrackingEnabled(bool enabled)
         {
-            if (currentThread != null) return;
+            this.trackingEnabled = enabled;
         }
 
-        public void TrackingThreadMain()
+        public void StartTrackingThread(string controllerSn, string trackerSn)
         {
+            if (currentThread != null) return;
 
+            if (!Controllers.ContainsKey(controllerSn))
+            {
+                MessageBox.Show("The controller " + controllerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (!Trackers.ContainsKey(trackerSn))
+            {
+                MessageBox.Show("The tracker " + trackerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            uint controllerHandle = Controllers[controllerSn];
+            uint trackerHandle = Trackers[trackerSn];
+
+            this.currentThread = new Thread(() => TrackingThreadMain(controllerHandle, trackerHandle));
+            this.currentThread.Name = "TrackingThread";
+            this.currentThread.Start();
+            this.trackingThreadRunning = true;
+            this.trackingEnabled = false;
+        }
+
+        public void TrackingThreadMain(uint controllerHandle, uint trackerHandle)
+        {
+            TrackedDevicePose_t[] poses = new TrackedDevicePose_t[Math.Max(controllerHandle, trackerHandle)];
+
+            var eventArgs = new TrackingDataArgs();
+
+            while (true)
+            {
+                if (CancelTokenSource.Token.WaitHandle.WaitOne(1000 / 30)) // attempt 30 updates per second
+                {
+                    return; // cancellation was requested
+                }
+
+                OpenVR.System.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0, poses);
+
+                var controllerPose = poses[controllerHandle];
+                var trackerPose = poses[trackerHandle];
+
+                eventArgs.Controller = MathUtils.OVR34ToMat44(ref controllerPose.mDeviceToAbsoluteTracking);
+                eventArgs.Tracker = MathUtils.OVR34ToMat44(ref trackerPose.mDeviceToAbsoluteTracking);
+
+                var handler = TrackingData;
+                handler?.Invoke(this, eventArgs);
+            }
         }
 
         public void StartCalibrationThread(string controllerSn, AvatarCalibration avatarCalibration)

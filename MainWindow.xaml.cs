@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using MathNet.Numerics.LinearAlgebra;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -122,6 +123,9 @@ namespace VRC_OSC_ExternallyTrackedObject
         private OscManager OscManager = new OscManager();
         private string? CurrentAvatarId;
 
+        private Matrix<float> CurrentInverseCalibrationMatrix = null;
+        private Matrix<float> CurrentInverseCalibrationMatrixNoScale = null;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -152,6 +156,10 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
 
             this.OpenVRManager.CalibrationUpdate += OnCalibrationUpdate;
+            this.OpenVRManager.TrackingData += OnTrackingData;
+
+            this.OscManager.AvatarChanged += OnAvatarChanged;
+            this.OscManager.TrackingActiveChanged += OnTrackingActiveChanged;
 
             this.OpenVRManager.InitOverlay();
             UpdateControllersAndTrackers();
@@ -194,6 +202,58 @@ namespace VRC_OSC_ExternallyTrackedObject
                         fields[calibrationUpdateArgs.Field].InputText = calibrationUpdateArgs.FloatValue.ToString();
                         updateCalibrationValue(calibrationUpdateArgs.Field, calibrationUpdateArgs.FloatValue);
                         break;
+                }
+            }));
+        }
+
+        // will be called within the OVR tracking thread,
+        // but we can send the OSC messages directly from here, so no injecting it into the UI thread neccessary
+        private void OnTrackingData(object? sender, EventArgs args)
+        {
+            var trackingEventArgs = (TrackingDataArgs)args;
+
+            if (CurrentInverseCalibrationMatrix == null) return;
+
+            var controllerInverse = trackingEventArgs.Controller.Inverse();
+            var _controllerToTracker = controllerInverse * trackingEventArgs.Tracker;
+
+            var controllerToTracker = CurrentInverseCalibrationMatrix * _controllerToTracker;
+            var controllerToTrackerNS = CurrentInverseCalibrationMatrixNoScale * _controllerToTracker;
+
+            var relativeTranslate = controllerToTracker.Column(3);
+
+            var relativeRotation = MathUtils.extractRotationsFromMatrix(controllerToTrackerNS.SubMatrix(0, 3, 0, 3).Inverse());
+
+        }
+
+        private void OnTrackingActiveChanged(object? sender, EventArgs args)
+        {
+
+        }
+
+        // this is called from the OSC thread, so we need to move the data to the UI thread first
+        private void OnAvatarChanged(object? sender, EventArgs args)
+        {
+            var avatarChangeArgs = (AvatarChangedArgs)args;
+
+            var dispatcher = Application.Current.Dispatcher;
+            dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (CurrentConfig.Avatars.ContainsKey(avatarChangeArgs.Id))
+                {
+                    var calibration = CurrentConfig.Avatars[avatarChangeArgs.Id].Calibration;
+
+                    CurrentInverseCalibrationMatrix = MathUtils.createTransformMatrix44(
+                        (float)calibration.RotationX, (float)calibration.RotationY, (float)calibration.RotationZ,
+                        (float)calibration.TranslationX, (float)calibration.TranslationY, (float)calibration.TranslationZ,
+                        (float)calibration.Scale, (float)calibration.Scale, (float)calibration.Scale
+                    ).Inverse();
+
+                    CurrentInverseCalibrationMatrixNoScale = MathUtils.createTransformMatrix44(
+                        (float)calibration.RotationX, (float)calibration.RotationY, (float)calibration.RotationZ,
+                        (float)calibration.TranslationX, (float)calibration.TranslationY, (float)calibration.TranslationZ,
+                        1.0f, 1.0f, 1.0f
+                    ).Inverse();
                 }
             }));
         }
@@ -603,16 +663,10 @@ namespace VRC_OSC_ExternallyTrackedObject
                     return;
                 }
 
-                if (AvatarDropdown.SelectedItem == null)
-                {
-                    MessageBox.Show("No avatar selected. You need to select an avatar to calibrate the values for.", "Avatar missing", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                string inputAddress = "";
-                int inputPort = 0;
-                string outputAddress = "";
-                int outputPort = 0;
+                string inputAddress;
+                int inputPort;
+                string outputAddress;
+                int outputPort;
 
                 if (IPEndPoint.TryParse(OSCInputAddress.InputText, out IPEndPoint endpoint))
                 {
@@ -638,10 +692,6 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                 string currentController = ((DeviceListItem)ControllerDropdown.SelectedItem).Serial;
                 string currentTracker = ((DeviceListItem)TrackerDropdown.SelectedItem).Serial;
-                string currentAvatar = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
-
-                AvatarCalibration calibration = CurrentConfig.Avatars[currentAvatar].Calibration;
-                AvatarParams paramSetup = CurrentConfig.Avatars[currentAvatar].Parameters;
 
                 StartTrackingButton.Content = "Stop Tracking";
                 StartCalibrationButton.IsEnabled = false;
@@ -649,8 +699,8 @@ namespace VRC_OSC_ExternallyTrackedObject
                 CalibrationTab.IsEnabled = false;
                 AvatarsTab.IsEnabled = false;
 
-                this.OpenVRManager.StartTrackingThread(currentController, currentTracker, calibration);
-                this.OscManager.Start(inputAddress, inputPort, outputAddress, outputPort, paramSetup);
+                this.OpenVRManager.StartTrackingThread(currentController, currentTracker);
+                this.OscManager.Start(inputAddress, inputPort, outputAddress, outputPort, CurrentConfig.Avatars);
             }
         }
 
