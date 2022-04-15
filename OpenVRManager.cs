@@ -196,20 +196,20 @@ namespace VRC_OSC_ExternallyTrackedObject
             this.trackingEnabled = enabled;
         }
 
-        public void StartTrackingThread(string controllerSn, string trackerSn)
+        public bool StartTrackingThread(string controllerSn, string trackerSn)
         {
-            if (currentThread != null) return;
+            if (currentThread != null) return false;
 
             if (!Controllers.ContainsKey(controllerSn))
             {
                 MessageBox.Show("The controller " + controllerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return false;
             }
 
             if (!Trackers.ContainsKey(trackerSn))
             {
                 MessageBox.Show("The tracker " + trackerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return false;
             }
 
             uint controllerHandle = Controllers[controllerSn];
@@ -220,17 +220,19 @@ namespace VRC_OSC_ExternallyTrackedObject
             this.currentThread.Start();
             this.trackingThreadRunning = true;
             this.trackingEnabled = false;
+
+            return true;
         }
 
         public void TrackingThreadMain(uint controllerHandle, uint trackerHandle)
         {
-            TrackedDevicePose_t[] poses = new TrackedDevicePose_t[Math.Max(controllerHandle, trackerHandle)];
+            TrackedDevicePose_t[] poses = new TrackedDevicePose_t[Math.Max(controllerHandle, trackerHandle) + 1];
 
             var eventArgs = new TrackingDataArgs();
 
             while (true)
             {
-                if (CancelTokenSource.Token.WaitHandle.WaitOne(1000 / 30)) // attempt 30 updates per second
+                if (CancelTokenSource.Token.WaitHandle.WaitOne(1000 / 90)) // attempt 90 updates per second
                 {
                     return; // cancellation was requested
                 }

@@ -1,6 +1,7 @@
 ﻿using Rug.Osc;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -36,11 +37,19 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public void Start(string inputAddress, int inputPort, string outputAddress, int outputPort, Dictionary<string, AvatarConfig> config)
         {
-            oscSender = new OscSender(System.Net.IPAddress.Parse(outputAddress), outputPort);
+            oscSender = new OscSender(System.Net.IPAddress.Parse(outputAddress), 0, outputPort);
             oscReceiver = new OscReceiver(System.Net.IPAddress.Parse(inputAddress), inputPort);
             currentConfig = config;
 
+            //this.currentlyActive = true; // just for testing
+
+            oscReceiver.Connect();
+            oscSender.Connect();
+
             currentThread = new Thread(new ThreadStart(ListenThread));
+            currentThread.Start();
+
+            Debug.WriteLine("OSC thread started");
         }
 
         public void ListenThread()
@@ -56,6 +65,8 @@ namespace VRC_OSC_ExternallyTrackedObject
                         OscPacket packet = oscReceiver.Receive();
                         OscMessage msg = OscMessage.Parse(packet.ToString());
                         
+                        //Debug.WriteLine(packet.ToString());
+
                         if (msg.Address == AVATAR_CHANGE_ADDRESS && msg.Count > 0)
                         {
                             currentAvatar = (string)msg[0];
@@ -132,6 +143,8 @@ namespace VRC_OSC_ExternallyTrackedObject
             oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.RotationX, rotX));
             oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.RotationY, rotY));
             oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.RotationZ, rotZ));
+
+            //Debug.WriteLine("[OSC] Sending pos=(" + posX + ", " + posY + ", " + posZ + ") rot=(" + rotX + ", " + rotY + ", " + rotZ + ")");
         }
     }
 }

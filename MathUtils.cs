@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Valve.VR;
 using MathNet.Numerics;
+using MathNet.Spatial.Euclidean;
 
 namespace VRC_OSC_ExternallyTrackedObject
 {
@@ -86,59 +87,64 @@ namespace VRC_OSC_ExternallyTrackedObject
             mat[3, 3] = 1;
         }
 
-        // ported directly from scipy
-        // https://github.com/scipy/scipy/blob/main/scipy/spatial/transform/_rotation.pyx
         public static Vector<float> extractRotationsFromMatrix(Matrix<float> mat33)
         {
             // turn rotation matrix into quaternion first
             var quat = Mat33toQuat(mat33);
 
-            // turn quaternion back into matrix
-            var mat = QuatToMat33(quat);
+            // turn quaternion into euler angles
+            var euler = quat.ToEulerAngles();
 
-
-        }
-
-        public static Vector<float> Mat33ToEulerYXZ()
-        {
-            // TODO
-        }
-
-        public static Vector<float> Mat33toQuat(Matrix<float> mat33)
-        {
-            var quat = Vector<float>.Build.Dense(4);
-
-            int i, j, k;
-
-            float[] decision = new float[4] { 0, 0, 0, 0 };
-
-            decision[0] = mat33[0, 0];
-            decision[1] = mat33[1, 1];
-            decision[2] = mat33[2, 2];
-            decision[3] = mat33[0, 0] + mat33[1, 1] + mat33[2, 2];
-
-            int choice = argmax(decision);
-
-            if (choice != 3)
+            // return the result as a numerics vector
+            return Vector<float>.Build.DenseOfArray(new float[]
             {
-                i = choice;
-                j = (i + 1) % 3;
-                k = (j + 1) % 3;
+                (float)euler.Alpha.Radians,
+                (float)euler.Beta.Radians,
+                (float)euler.Gamma.Radians
+            });
+        }
 
-                quat[i] = 1 - decision[3] + 2 * mat33[i, i];
-                quat[j] = mat33[j, i] + mat33[i, j];
-                quat[k] = mat33[k, i] + mat33[i, k];
-                quat[3] = mat33[k, j] - mat33[j, k];
+        // ported directly from https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+        public static Quaternion Mat33toQuat(Matrix<float> mat33)
+        {
+
+            double tr = mat33[0, 0] + mat33[1, 1] + mat33[2, 2];
+            double qx, qy, qz, qw;
+
+            if (tr > 0)
+            {
+                double S = Math.Sqrt(tr + 1.0f) * 2; // S=4*qw 
+                qw = 0.25 * S;
+                qx = (mat33[2, 1] - mat33[1, 2]) / S;
+                qy = (mat33[0, 2] - mat33[2, 0]) / S;
+                qz = (mat33[1, 0] - mat33[0, 1]) / S;
+            }
+            else if ((mat33[0, 0] > mat33[1, 1]) & (mat33[0, 0] > mat33[2, 2]))
+            {
+                double S = Math.Sqrt(1.0 + mat33[0, 0] - mat33[1, 1] - mat33[2, 2]) * 2; // S=4*qx 
+                qw = (mat33[2, 1] - mat33[1, 2]) / S;
+                qx = 0.25 * S;
+                qy = (mat33[0, 1] + mat33[1, 0]) / S;
+                qz = (mat33[0, 2] + mat33[2, 0]) / S;
+            }
+            else if (mat33[1, 1] > mat33[2, 2])
+            {
+                double S = Math.Sqrt(1.0 + mat33[1, 1] - mat33[0, 0] - mat33[2, 2]) * 2; // S=4*qy
+                qw = (mat33[0, 2] - mat33[2, 0]) / S;
+                qx = (mat33[0, 1] + mat33[1, 0]) / S;
+                qy = 0.25 * S;
+                qz = (mat33[1, 2] + mat33[2, 1]) / S;
             }
             else
             {
-                quat[0] = mat33[2, 1] - mat33[1, 2];
-                quat[1] = mat33[0, 2] - mat33[2, 0];
-                quat[2] = mat33[1, 0] - mat33[0, 1];
-                quat[3] = 1 + decision[3];
+                double S = Math.Sqrt(1.0 + mat33[2, 2] - mat33[0, 0] - mat33[1, 1]) * 2; // S=4*qz
+                qw = (mat33[1, 0] - mat33[0, 1]) / S;
+                qx = (mat33[0, 2] + mat33[2, 0]) / S;
+                qy = (mat33[1, 2] + mat33[2, 1]) / S;
+                qz = 0.25 * S;
             }
 
-            return quat.Normalize(2);
+            return new Quaternion(qw, qx, qy, qz);
         }
 
         public static Matrix<float> QuatToMat33(Vector<float> quat)
@@ -172,13 +178,11 @@ namespace VRC_OSC_ExternallyTrackedObject
         public static int argmax(float[] input)
         {
             int hi = 0;
-            float hv = Single.NegativeInfinity;
 
-            for (int i = 0; i < input.Length; ++i)
+            for (int i = 1; i < input.Length; ++i)
             {
-                if (input[i] > hv)
+                if (input[i] > input[hi])
                 {
-                    hv = input[i];
                     hi = i;
                 }
             }

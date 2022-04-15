@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "VRC-OSC-ExternallyTrackedObject": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\Jan\\Desktop\\osc_tracking.json"
+    }
+  }
+}

@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -126,6 +127,8 @@ namespace VRC_OSC_ExternallyTrackedObject
         private Matrix<float> CurrentInverseCalibrationMatrix = null;
         private Matrix<float> CurrentInverseCalibrationMatrixNoScale = null;
 
+        public static float MAX_RELATIVE_DISTANCE = 1; // this is the max distance the tracker can be away from the controller. this is important for scaling the value since vrchat wants a value between -1 and 1
+
         public MainWindow()
         {
             InitializeComponent();
@@ -222,8 +225,29 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             var relativeTranslate = controllerToTracker.Column(3);
 
-            var relativeRotation = MathUtils.extractRotationsFromMatrix(controllerToTrackerNS.SubMatrix(0, 3, 0, 3).Inverse());
+            var relativeRotation = MathUtils.extractRotationsFromMatrix(controllerToTrackerNS.Inverse().SubMatrix(0, 3, 0, 3));
 
+            if (Math.Abs(relativeTranslate[0]) >= MAX_RELATIVE_DISTANCE 
+                || Math.Abs(relativeTranslate[1]) >= MAX_RELATIVE_DISTANCE
+                || Math.Abs(relativeTranslate[2]) >= MAX_RELATIVE_DISTANCE)
+            {
+                relativeTranslate[0] = 0;
+                relativeTranslate[1] = 0;
+                relativeTranslate[2] = 0;
+            }
+
+            float rotationX = -relativeRotation[0] / (float)Math.PI;
+            float rotationY = relativeRotation[1] / (float)Math.PI;
+            float rotationZ = relativeRotation[2] / (float)Math.PI;
+
+            this.OscManager.SendValues(
+                -relativeTranslate[0] / MAX_RELATIVE_DISTANCE,
+                relativeTranslate[1] / MAX_RELATIVE_DISTANCE,
+                relativeTranslate[2] / MAX_RELATIVE_DISTANCE,
+                rotationX,
+                rotationY,
+                rotationZ
+            );
         }
 
         private void OnTrackingActiveChanged(object? sender, EventArgs args)
@@ -239,8 +263,12 @@ namespace VRC_OSC_ExternallyTrackedObject
             var dispatcher = Application.Current.Dispatcher;
             dispatcher.BeginInvoke(new Action(() =>
             {
+                Debug.WriteLine("Avatar changed to " + avatarChangeArgs.Id);
+
                 if (CurrentConfig.Avatars.ContainsKey(avatarChangeArgs.Id))
                 {
+                    Debug.WriteLine("we know this avatar, creating inverse calibration matrix");
+
                     var calibration = CurrentConfig.Avatars[avatarChangeArgs.Id].Calibration;
 
                     CurrentInverseCalibrationMatrix = MathUtils.createTransformMatrix44(
@@ -693,13 +721,16 @@ namespace VRC_OSC_ExternallyTrackedObject
                 string currentController = ((DeviceListItem)ControllerDropdown.SelectedItem).Serial;
                 string currentTracker = ((DeviceListItem)TrackerDropdown.SelectedItem).Serial;
 
+                bool trackingStarted = this.OpenVRManager.StartTrackingThread(currentController, currentTracker);
+
+                if (!trackingStarted) return;
+
                 StartTrackingButton.Content = "Stop Tracking";
                 StartCalibrationButton.IsEnabled = false;
                 AvatarDropdown.IsEnabled = false;
                 CalibrationTab.IsEnabled = false;
                 AvatarsTab.IsEnabled = false;
 
-                this.OpenVRManager.StartTrackingThread(currentController, currentTracker);
                 this.OscManager.Start(inputAddress, inputPort, outputAddress, outputPort, CurrentConfig.Avatars);
             }
         }
