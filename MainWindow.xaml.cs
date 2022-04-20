@@ -168,6 +168,14 @@ namespace VRC_OSC_ExternallyTrackedObject
             UpdateControllersAndTrackers();
         }
 
+        public void ProcessStartupConfig()
+        {
+            if (CurrentConfig.Autostart)
+            {
+                StartTracking();
+            }
+        }
+
         // this will be called within the calibration thread so we need to inject the event back into the UI thread
         private void OnCalibrationUpdate(object? sender, EventArgs args)
         {
@@ -250,9 +258,27 @@ namespace VRC_OSC_ExternallyTrackedObject
             );
         }
 
+        // this is called from the OSC thread, so we need to move the data to the UI thread first
         private void OnTrackingActiveChanged(object? sender, EventArgs args)
         {
+            var eventArgs = (TrackingActiveChangedArgs)args;
 
+            var dispatcher = Application.Current.Dispatcher;
+            dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (eventArgs.Active)
+                {
+                    CurrentStatusLabel.Content = "active";
+                }
+                else if (eventArgs.AvatarKnown)
+                {
+                    CurrentStatusLabel.Content = "inactive (disabled)";
+                }
+                else
+                {
+                    CurrentStatusLabel.Content = "inactive (unknown avatar)";
+                }
+            }));
         }
 
         // this is called from the OSC thread, so we need to move the data to the UI thread first
@@ -320,6 +346,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             CurrentConfig.OscInputAddress = OSCInputAddress.InputText;
             CurrentConfig.OscOutputAddress = OSCOutputAddress.InputText;
+            CurrentConfig.Autostart = AutostartCheckbox.IsChecked == true;
         }
 
         private void Btn_saveConfig(object sender, RoutedEventArgs e)
@@ -405,6 +432,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             OSCInputAddress.InputText = CurrentConfig.OscInputAddress;
             OSCOutputAddress.InputText = CurrentConfig.OscOutputAddress;
+            AutostartCheckbox.IsChecked = CurrentConfig.Autostart;
 
             AvatarList.Clear();
             foreach (var avi in CurrentConfig.Avatars)
@@ -667,72 +695,77 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
             else
             {
-                if (ControllerDropdown.SelectedItem == null)
-                {
-                    MessageBox.Show("No controller selected", "Controller missing", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                if (TrackerDropdown.SelectedItem == null)
-                {
-                    MessageBox.Show("No tracker selected", "Tracker missing", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                if (OSCInputAddress.InputText == null || OSCInputAddress.InputText.Length == 0)
-                {
-                    MessageBox.Show("No input address provided", "Input address missing", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                if (OSCOutputAddress.InputText == null || OSCOutputAddress.InputText.Length == 0)
-                {
-                    MessageBox.Show("No output address provided", "Output address missing", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                string inputAddress;
-                int inputPort;
-                string outputAddress;
-                int outputPort;
-
-                if (IPEndPoint.TryParse(OSCInputAddress.InputText, out IPEndPoint endpoint))
-                {
-                    inputAddress = endpoint.Address.ToString();
-                    inputPort = endpoint.Port;
-                } 
-                else
-                {
-                    MessageBox.Show("Could not parse input address. Make sure it has the format <address>:<port>", "Invalid input address", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                if (IPEndPoint.TryParse(OSCOutputAddress.InputText, out endpoint))
-                {
-                    outputAddress = endpoint.Address.ToString();
-                    outputPort = endpoint.Port;
-                }
-                else
-                {
-                    MessageBox.Show("Could not parse output address. Make sure it has the format <address>:<port>", "Invalid input address", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                string currentController = ((DeviceListItem)ControllerDropdown.SelectedItem).Serial;
-                string currentTracker = ((DeviceListItem)TrackerDropdown.SelectedItem).Serial;
-
-                bool trackingStarted = this.OpenVRManager.StartTrackingThread(currentController, currentTracker);
-
-                if (!trackingStarted) return;
-
-                StartTrackingButton.Content = "Stop Tracking";
-                StartCalibrationButton.IsEnabled = false;
-                AvatarDropdown.IsEnabled = false;
-                CalibrationTab.IsEnabled = false;
-                AvatarsTab.IsEnabled = false;
-
-                this.OscManager.Start(inputAddress, inputPort, outputAddress, outputPort, CurrentConfig.Avatars);
+                StartTracking();
             }
+        }
+
+        private void StartTracking()
+        {
+            if (ControllerDropdown.SelectedItem == null)
+            {
+                MessageBox.Show("No controller selected", "Controller missing", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (TrackerDropdown.SelectedItem == null)
+            {
+                MessageBox.Show("No tracker selected", "Tracker missing", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (OSCInputAddress.InputText == null || OSCInputAddress.InputText.Length == 0)
+            {
+                MessageBox.Show("No input address provided", "Input address missing", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (OSCOutputAddress.InputText == null || OSCOutputAddress.InputText.Length == 0)
+            {
+                MessageBox.Show("No output address provided", "Output address missing", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            string inputAddress;
+            int inputPort;
+            string outputAddress;
+            int outputPort;
+
+            if (IPEndPoint.TryParse(OSCInputAddress.InputText, out IPEndPoint endpoint))
+            {
+                inputAddress = endpoint.Address.ToString();
+                inputPort = endpoint.Port;
+            }
+            else
+            {
+                MessageBox.Show("Could not parse input address. Make sure it has the format <address>:<port>", "Invalid input address", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (IPEndPoint.TryParse(OSCOutputAddress.InputText, out endpoint))
+            {
+                outputAddress = endpoint.Address.ToString();
+                outputPort = endpoint.Port;
+            }
+            else
+            {
+                MessageBox.Show("Could not parse output address. Make sure it has the format <address>:<port>", "Invalid input address", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string currentController = ((DeviceListItem)ControllerDropdown.SelectedItem).Serial;
+            string currentTracker = ((DeviceListItem)TrackerDropdown.SelectedItem).Serial;
+
+            bool trackingStarted = this.OpenVRManager.StartTrackingThread(currentController, currentTracker);
+
+            if (!trackingStarted) return;
+
+            StartTrackingButton.Content = "Stop Tracking";
+            StartCalibrationButton.IsEnabled = false;
+            AvatarDropdown.IsEnabled = false;
+            CalibrationTab.IsEnabled = false;
+            AvatarsTab.IsEnabled = false;
+
+            this.OscManager.Start(inputAddress, inputPort, outputAddress, outputPort, CurrentConfig.Avatars);
         }
 
         private void MainWindowName_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

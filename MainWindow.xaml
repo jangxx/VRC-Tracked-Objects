@@ -18,7 +18,7 @@
             <GroupBox Header="Global Settings" DockPanel.Dock="Top">
                 <StackPanel>
                     <Border BorderThickness="5,5,5,5">
-                        <CheckBox Content="Start tracking when launched from config file" ToolTip="Automatically start tracking when this config file is loaded as a launch parameter"></CheckBox>
+                        <CheckBox Content="Start tracking when launched from config file" ToolTip="Automatically start tracking when this config file is loaded as a launch parameter" x:Name="AutostartCheckbox"></CheckBox>
                     </Border>
                     <local:LabeledInput LabelText="OSC Input Address" x:Name="OSCInputAddress"></local:LabeledInput>
                     <local:LabeledInput LabelText="OSC Output Address" x:Name="OSCOutputAddress"></local:LabeledInput>
@@ -53,6 +53,14 @@
                                 <local:LabeledInput LabelText="Rotation X (float)" x:Name="ParamRotX"></local:LabeledInput>
                                 <local:LabeledInput LabelText="Rotation Y (float)" x:Name="ParamRotY"></local:LabeledInput>
                                 <local:LabeledInput LabelText="Rotation Z (float)" x:Name="ParamRotZ"></local:LabeledInput>
+                                <Grid Height="30">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="150"></ColumnDefinition>
+                                        <ColumnDefinition Width="*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Label Height="28" Content="Current status" HorizontalAlignment="Left"></Label>
+                                    <Label Grid.Column="1" Height="28" Content="inactive" HorizontalAlignment="Left" x:Name="CurrentStatusLabel"></Label>
+                                </Grid>
                             </StackPanel>
                         </GroupBox>
                         <Button Margin="5,5,5,5" Height="25" x:Name="StartTrackingButton" Click="StartTrackingButton_Click">Start Tracking</Button>

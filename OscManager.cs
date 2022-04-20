@@ -13,6 +13,7 @@ namespace VRC_OSC_ExternallyTrackedObject
     public class TrackingActiveChangedArgs : EventArgs
     {
         public bool Active { get; set; }
+        public bool AvatarKnown { get; set; }
     }
 
     public class AvatarChangedArgs : EventArgs
@@ -37,8 +38,14 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public void Start(string inputAddress, int inputPort, string outputAddress, int outputPort, Dictionary<string, AvatarConfig> config)
         {
-            oscSender = new OscSender(System.Net.IPAddress.Parse(outputAddress), 0, outputPort);
-            oscReceiver = new OscReceiver(System.Net.IPAddress.Parse(inputAddress), inputPort);
+            if (oscSender == null)
+            {
+                oscSender = new OscSender(System.Net.IPAddress.Parse(outputAddress), 0, outputPort);
+            }
+            if (oscReceiver == null)
+            {
+                oscReceiver = new OscReceiver(System.Net.IPAddress.Parse(inputAddress), inputPort);
+            }
             currentConfig = config;
 
             //this.currentlyActive = true; // just for testing
@@ -46,7 +53,9 @@ namespace VRC_OSC_ExternallyTrackedObject
             oscReceiver.Connect();
             oscSender.Connect();
 
-            currentThread = new Thread(new ThreadStart(ListenThread));
+            currentThread = new Thread(() => ListenThread());
+            currentThread.Name = "OscThread";
+            currentThread.IsBackground = true;
             currentThread.Start();
 
             Debug.WriteLine("OSC thread started");
@@ -58,7 +67,17 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             try
             {
-                while(oscReceiver.State != OscSocketState.Closed)
+                {
+                    var args = new TrackingActiveChangedArgs()
+                    {
+                        Active = false,
+                        AvatarKnown = false,
+                    };
+                    var handler = TrackingActiveChanged;
+                    handler?.Invoke(this, args);
+                }
+
+                while (oscReceiver.State != OscSocketState.Closed)
                 {
                     if (oscReceiver.State == OscSocketState.Connected)
                     {
@@ -71,13 +90,33 @@ namespace VRC_OSC_ExternallyTrackedObject
                         {
                             currentAvatar = (string)msg[0];
 
-                            var args = new AvatarChangedArgs() { Id = currentAvatar };
-                            var handler = AvatarChanged;
-                            handler?.Invoke(this, args);
+                            {
+                                var args = new AvatarChangedArgs() { Id = currentAvatar };
+                                var handler = AvatarChanged;
+                                handler?.Invoke(this, args);
+                            }
+
+                            this.currentlyActive = false;
+
+                            if (currentConfig.ContainsKey(currentAvatar))
+                            {
+                                // if the activate parameter is set to nothing we are always activated, otherwise we wait for the trigger
+                                this.currentlyActive = currentConfig[currentAvatar].Parameters.Activate == "";
+                            }
+
+                            {
+                                var args = new TrackingActiveChangedArgs()
+                                {
+                                    Active = this.currentlyActive,
+                                    AvatarKnown = currentConfig.ContainsKey(currentAvatar),
+                                };
+                                var handler = TrackingActiveChanged;
+                                handler?.Invoke(this, args);
+                            }
                         } 
-                        else if (currentAvatar != null 
+                        else if (currentAvatar != null
                             && currentConfig.ContainsKey(currentAvatar)
-                            && msg.Address == currentConfig[currentAvatar].Parameters.Activate 
+                            && msg.Address == currentConfig[currentAvatar].Parameters.Activate
                             && msg.Count > 0)
                         {
                             bool activate = (bool)msg[0];
@@ -87,6 +126,11 @@ namespace VRC_OSC_ExternallyTrackedObject
                             var args = new TrackingActiveChangedArgs() { Active = activate };
                             var handler = TrackingActiveChanged;
                             handler?.Invoke(this, args);
+
+                            if (!this.currentlyActive)
+                            {
+                                SendValues(0, 0, 0, 0, 0, 0, true); // reset all values to 0 so that we can reuse those parameters
+                            }
                         }
 
                         // everything else is ignored
@@ -95,7 +139,7 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
             catch(Exception e)
             {
-                if (oscReceiver.State == OscSocketState.Connected)
+                if (oscReceiver != null && oscReceiver.State == OscSocketState.Connected)
                 {
                     MessageBox.Show("OSC thread encountered an unexpected error: " + e.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
@@ -107,14 +151,16 @@ namespace VRC_OSC_ExternallyTrackedObject
             if (oscReceiver != null)
             {
                 oscReceiver.Close();
+                //oscReceiver.Dispose();
             }
             if (oscSender != null)
             {
                 oscSender.Close();
+                //oscSender.Dispose();
             }
 
-            oscReceiver = null;
-            oscSender = null;
+            //oscReceiver = null;
+            //oscSender = null;
 
             currentConfig = null;
 
@@ -125,14 +171,14 @@ namespace VRC_OSC_ExternallyTrackedObject
             currentThread = null;
         }
 
-        public void SendValues(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
+        public void SendValues(float posX, float posY, float posZ, float rotX, float rotY, float rotZ, bool force = false)
         {
-            if (this.oscSender == null || this.currentConfig == null)
+            if (this.oscSender == null || this.oscSender.State != OscSocketState.Connected || this.currentConfig == null)
             {
                 throw new Exception("SendValues was called without the OSC manager being set up");
             }
 
-            if (!this.currentlyActive || currentAvatar == null || !this.currentConfig.ContainsKey(currentAvatar))
+            if ((!force && !this.currentlyActive) || currentAvatar == null || !this.currentConfig.ContainsKey(currentAvatar))
             {
                 return; // discard the message to not spam the game with useless messages
             }

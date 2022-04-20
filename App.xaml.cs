@@ -20,7 +20,7 @@ namespace VRC_OSC_ExternallyTrackedObject
             if (e.Args.Length > 0)
             {
                 wnd.LoadConfig(e.Args[0]);
-                //wnd.ProcessStartupConfig();
+                wnd.ProcessStartupConfig();
             }
 
             wnd.Show();

@@ -215,8 +215,11 @@ namespace VRC_OSC_ExternallyTrackedObject
             uint controllerHandle = Controllers[controllerSn];
             uint trackerHandle = Trackers[trackerSn];
 
+            this.CancelTokenSource = new CancellationTokenSource();
+
             this.currentThread = new Thread(() => TrackingThreadMain(controllerHandle, trackerHandle));
             this.currentThread.Name = "TrackingThread";
+            this.currentThread.IsBackground = true;
             this.currentThread.Start();
             this.trackingThreadRunning = true;
             this.trackingEnabled = false;
@@ -227,17 +230,19 @@ namespace VRC_OSC_ExternallyTrackedObject
         public void TrackingThreadMain(uint controllerHandle, uint trackerHandle)
         {
             TrackedDevicePose_t[] poses = new TrackedDevicePose_t[Math.Max(controllerHandle, trackerHandle) + 1];
+            TrackedDevicePose_t[] empty = new TrackedDevicePose_t[0];
 
             var eventArgs = new TrackingDataArgs();
 
             while (true)
             {
-                if (CancelTokenSource.Token.WaitHandle.WaitOne(1000 / 90)) // attempt 90 updates per second
+                if (CancelTokenSource.Token.WaitHandle.WaitOne(10))
                 {
                     return; // cancellation was requested
                 }
 
-                OpenVR.System.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0, poses);
+                //OpenVR.System.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0, poses);
+                ThrowOVRError(OpenVR.Compositor.GetLastPoses(poses, empty));
 
                 var controllerPose = poses[controllerHandle];
                 var trackerPose = poses[trackerHandle];
@@ -266,6 +271,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             this.currentThread = new Thread(() => CalibrationThreadMain(controllerHandle));
             this.currentThread.Name = "CalibrationThread";
+            this.currentThread.IsBackground = true;
             this.currentThread.Start();
             this.calibrationThreadRunning = true;
         }
@@ -449,6 +455,14 @@ namespace VRC_OSC_ExternallyTrackedObject
         private void ThrowOVRError(EVROverlayError err)
         {
             if (err != EVROverlayError.None)
+            {
+                throw new OVRException(err.ToString());
+            }
+        }
+
+        private void ThrowOVRError(EVRCompositorError err)
+        {
+            if (err != EVRCompositorError.None)
             {
                 throw new OVRException(err.ToString());
             }
