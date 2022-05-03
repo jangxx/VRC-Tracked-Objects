@@ -7,6 +7,14 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>resources\icon.ico</ApplicationIcon>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <AssemblyName>OSC-TrackedObject</AssemblyName>
+    <Company>jangxx</Company>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>

@@ -17,6 +17,14 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             MainWindow wnd = new MainWindow();
 
+            bool initSuccess = wnd.Init();
+
+            if (!initSuccess)
+            {
+                Shutdown();
+                return;
+            }
+
             if (e.Args.Length > 0)
             {
                 wnd.LoadConfig(e.Args[0]);

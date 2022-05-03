@@ -164,8 +164,17 @@ namespace VRC_OSC_ExternallyTrackedObject
             this.OscManager.AvatarChanged += OnAvatarChanged;
             this.OscManager.TrackingActiveChanged += OnTrackingActiveChanged;
 
-            this.OpenVRManager.InitOverlay();
+            
+        }
+
+        public bool Init()
+        {
+            bool initSuccess = this.OpenVRManager.InitOverlay();
+
+            if (!initSuccess) return false;
+
             UpdateControllersAndTrackers();
+            return true;
         }
 
         public void ProcessStartupConfig()

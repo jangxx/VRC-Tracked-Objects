@@ -123,7 +123,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                             this.currentlyActive = activate;
 
-                            var args = new TrackingActiveChangedArgs() { Active = activate };
+                            var args = new TrackingActiveChangedArgs() { Active = activate, AvatarKnown = true };
                             var handler = TrackingActiveChanged;
                             handler?.Invoke(this, args);
 

@@ -150,7 +150,7 @@ namespace VRC_OSC_ExternallyTrackedObject
             return sb.ToString();
         }
 
-        public void InitBackground()
+        public bool InitBackground()
         {
             if (cVR != null)
             {
@@ -163,10 +163,15 @@ namespace VRC_OSC_ExternallyTrackedObject
             if (error != EVRInitError.None)
             {
                 MessageBox.Show("Error while connecting to SteamVR: " + error.ToString(), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            else
+            {
+                return true;
             }
         }
 
-        public void InitOverlay()
+        public bool InitOverlay()
         {
             if (cVR != null)
             {
@@ -179,6 +184,11 @@ namespace VRC_OSC_ExternallyTrackedObject
             if (error != EVRInitError.None)
             {
                 MessageBox.Show("Error while connecting to SteamVR: " + error.ToString(), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            } 
+            else
+            {
+                return true;
             }
         }
 
