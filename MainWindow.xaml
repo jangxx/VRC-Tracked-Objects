@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:VRC_OSC_ExternallyTrackedObject"
         mc:Ignorable="d"
         x:Name="MainWindowName" PreviewKeyDown="MainWindowName_KeyDown"
-        Title="VRC Externally Tracked Object" Width="350" ResizeMode="CanMinimize" SizeToContent="Height">
+        Title="VRC Externally Tracked Object" Width="450" ResizeMode="CanMinimize" SizeToContent="Height" WindowStartupLocation="CenterScreen">
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
@@ -53,16 +53,16 @@
                                 <local:LabeledInput LabelText="Rotation X (float)" x:Name="ParamRotX"></local:LabeledInput>
                                 <local:LabeledInput LabelText="Rotation Y (float)" x:Name="ParamRotY"></local:LabeledInput>
                                 <local:LabeledInput LabelText="Rotation Z (float)" x:Name="ParamRotZ"></local:LabeledInput>
-                                <Grid Height="30">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="150"></ColumnDefinition>
-                                        <ColumnDefinition Width="*"></ColumnDefinition>
-                                    </Grid.ColumnDefinitions>
-                                    <Label Height="28" Content="Current status" HorizontalAlignment="Left"></Label>
-                                    <Label Grid.Column="1" Height="28" Content="inactive" HorizontalAlignment="Left" x:Name="CurrentStatusLabel"></Label>
-                                </Grid>
                             </StackPanel>
                         </GroupBox>
+                        <Grid Height="30">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Label Height="28" Content="Current status" HorizontalAlignment="Left"></Label>
+                            <Label Grid.Column="1" Height="28" Content="inactive" HorizontalAlignment="Left" x:Name="CurrentStatusLabel"></Label>
+                        </Grid>
                         <Button Margin="5,5,5,5" Height="25" x:Name="StartTrackingButton" Click="StartTrackingButton_Click">Start Tracking</Button>
                     </StackPanel>
                 </TabItem>
