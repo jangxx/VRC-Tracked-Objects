@@ -12,9 +12,15 @@
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <AssemblyName>VRC_Tracked_Objects</AssemblyName>
     <Company>jangxx</Company>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <DebugType>embedded</DebugType>
+    <FileVersion>0.1.0.0</FileVersion>
+    <Version>0.1.0</Version>
+    <Product>VRC Tracked Objects</Product>
+    <Copyright>(c) 2022 Jan Scheiper</Copyright>
+    <PackageProjectUrl>https://github.com/jangxx/VRC-OSC-TrackedObjectApp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jangxx/VRC-OSC-TrackedObjectApp.git</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
