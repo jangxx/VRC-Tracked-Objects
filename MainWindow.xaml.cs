@@ -16,13 +16,13 @@ namespace VRC_OSC_ExternallyTrackedObject
 {
     internal class AvatarParams
     {
-        public string Activate { get; set; } = "/avatar/parameters/OSCTrackingActivate";
-        public string PositionX { get; set; } = "/avatar/parameters/OSCTrackingPosX";
-        public string PositionY { get; set; } = "/avatar/parameters/OSCTrackingPosY";
-        public string PositionZ { get; set; } = "/avatar/parameters/OSCTrackingPosZ";
-        public string RotationX { get; set; } = "/avatar/parameters/OSCTrackingRotX";
-        public string RotationY { get; set; } = "/avatar/parameters/OSCTrackingRotY";
-        public string RotationZ { get; set; } = "/avatar/parameters/OSCTrackingRotZ";
+        public string Activate { get; set; } = "/avatar/parameters/OSCTrackingEnabled";
+        public string PositionX { get; set; } = "/avatar/parameters/OscTrackedPosX";
+        public string PositionY { get; set; } = "/avatar/parameters/OscTrackedPosY";
+        public string PositionZ { get; set; } = "/avatar/parameters/OscTrackedPosZ";
+        public string RotationX { get; set; } = "/avatar/parameters/OscTrackedRotX";
+        public string RotationY { get; set; } = "/avatar/parameters/OscTrackedRotY";
+        public string RotationZ { get; set; } = "/avatar/parameters/OscTrackedRotZ";
     }
 
     internal class AvatarCalibration
@@ -621,13 +621,12 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         private void CopyInputValuesToConfig(AvatarConfig config)
         {
-            config.Parameters.Activate = ParamTrigger.InputText;
-            config.Parameters.PositionX = ParamPosX.InputText;
-            config.Parameters.PositionY = ParamPosY.InputText;
-            config.Parameters.PositionZ = ParamPosZ.InputText;
-            config.Parameters.RotationX = ParamRotX.InputText;
-            config.Parameters.RotationY = ParamRotY.InputText;
-            config.Parameters.RotationZ = ParamRotZ.InputText;
+            CopyCalibrationValuesToConfig(config);
+            CopyParametersToConfig(config);
+        }
+
+        private void CopyCalibrationValuesToConfig(AvatarConfig config)
+        {
             config.Calibration.Scale = float.Parse(CalibrationScale.InputText, CultureInfo.InvariantCulture);
             config.Calibration.TranslationX = float.Parse(CalibrationPosX.InputText, CultureInfo.InvariantCulture);
             config.Calibration.TranslationY = float.Parse(CalibrationPosY.InputText, CultureInfo.InvariantCulture);
@@ -635,6 +634,17 @@ namespace VRC_OSC_ExternallyTrackedObject
             config.Calibration.RotationX = float.Parse(CalibrationRotX.InputText, CultureInfo.InvariantCulture);
             config.Calibration.RotationY = float.Parse(CalibrationRotY.InputText, CultureInfo.InvariantCulture);
             config.Calibration.RotationZ = float.Parse(CalibrationRotZ.InputText, CultureInfo.InvariantCulture);
+        }
+
+        private void CopyParametersToConfig(AvatarConfig config)
+        {
+            config.Parameters.Activate = ParamTrigger.InputText;
+            config.Parameters.PositionX = ParamPosX.InputText;
+            config.Parameters.PositionY = ParamPosY.InputText;
+            config.Parameters.PositionZ = ParamPosZ.InputText;
+            config.Parameters.RotationX = ParamRotX.InputText;
+            config.Parameters.RotationY = ParamRotY.InputText;
+            config.Parameters.RotationZ = ParamRotZ.InputText;
         }
 
         private void StartCalibrationButton_Click(object sender, RoutedEventArgs e)
@@ -675,6 +685,9 @@ namespace VRC_OSC_ExternallyTrackedObject
                 string currentController = ((DeviceListItem)ControllerDropdown.SelectedItem).Serial;
                 string currentAvatar = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
 
+                // load values from inputs
+                CopyCalibrationValuesToConfig(CurrentConfig.Avatars[currentAvatar]);
+
                 // copy the current calibration to the calibration thread
                 // updates are then sent by the calibration thread via events
                 AvatarCalibration calibration = CurrentConfig.Avatars[currentAvatar].Calibration;
@@ -704,6 +717,11 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
             else
             {
+                string currentAvatar = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
+
+                // load values from inputs
+                CopyParametersToConfig(CurrentConfig.Avatars[currentAvatar]);
+
                 StartTracking();
             }
         }

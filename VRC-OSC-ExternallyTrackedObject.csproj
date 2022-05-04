@@ -10,7 +10,7 @@
     <PublishSingleFile>true</PublishSingleFile>
     <PublishReadyToRun>true</PublishReadyToRun>
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-    <AssemblyName>OSC-TrackedObject</AssemblyName>
+    <AssemblyName>VRC_Tracked_Objects</AssemblyName>
     <Company>jangxx</Company>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

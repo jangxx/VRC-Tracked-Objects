@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:VRC_OSC_ExternallyTrackedObject"
         mc:Ignorable="d"
         x:Name="MainWindowName" PreviewKeyDown="MainWindowName_KeyDown"
-        Title="VRC Externally Tracked Object" Width="450" ResizeMode="CanMinimize" SizeToContent="Height" WindowStartupLocation="CenterScreen">
+        Title="VRC Tracked Objects" Width="450" ResizeMode="CanMinimize" SizeToContent="Height" WindowStartupLocation="CenterScreen">
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
