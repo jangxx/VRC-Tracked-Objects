@@ -8,7 +8,7 @@ Download the latest version of the software from the [Releases](https://github.c
 
 ## Setup
 
-This section explains the initial setup, both of the software and also the avatar. If you prefer to watch a video tutorial of this whole process, you can find it here: **coming soon!**
+This section explains the initial setup, both of the software and also the avatar. If you prefer to watch a video tutorial of this whole process, you can find it on [YouTube](https://youtu.be/y6I-t1YBorY).
 This section assumes that you have already set up your avatar with a custom FX layer and custom parameters as well as an expressions menu.
 If you don't know how to do these things you need to look for another tutorial on basic prop toggles for example, since this section assumes at least basic knowledge of Unity.
 
