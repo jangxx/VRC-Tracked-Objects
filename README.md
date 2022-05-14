@@ -55,6 +55,34 @@ You can then jump into VRChat and see the tracked object by simply opening the F
 If you want to streamline the process even more, you can check "Start tracking when launched from config file", save the config again and then set up a shortcut that has the path of the config file as its first parameter.
 This way you can click on a single shortcut which will start the app and start tracking immediately (as long as the controller and tracker are connected).
 
+# The user interface
+
+This is an overview over the entire interface of the app as well as an explanation of what each part does.
+
+![entire interface](/resources/explanation_screenshots.png)
+
+1. If this is checked, tracking will begin immediately after the program is launched. As the label implies, this only works if the app is launched with the config file as its first launch parameter so that it can be loaded immediately on startup.
+
+2. Configure your OSC input and output addresses here. Both are needed, because we need bidirectional communication with VRChat. On the one end we need to listen for the enable parameter and on the other end we need to send in the tracking values.
+
+3. Here you can select your controller and tracker that the tracking is realtive to. The refresh button queries SteeamVR for a list of controllers. If a name is followed by `(Not found)` it means that the serial number was specified in the config file, but the controller or tracker is not currently connected. After you have connected the tracker, hit `Refresh` to have the app see the device properly.
+
+4. These are the parameters that the app publishes and listens to. The `Activate` parameter is optional. If the field is left blank, tracking data will be fed into the game as soon as a compatible avatar is changed into. 
+
+5. This status field can show the statuses `active` when a compatible avatar is worn and tracking data is sent, `inactive (unknown avatar)` if the current avatar is not compatible, `inactive (disabled)` when the `Activate` parameter is set to false and `inactive` when tracking has not been started.
+
+6. This button attempts to start tracking. It will show an error if the controller or tracker is not connected or if required fields are empty.
+
+7. This is the global avatar selector. Choose the avatar you want to calibrate or setup parameters for here.
+
+8. Here you can see and edit the calibration values. Do not that these values are only read at the very beginning of the tracking and calibration process. It is therefore not possible to live edit calibration values, not even while in the calibration procedure.
+
+9. This buttons starts the calibration procedure. The currently active field will be highlighted in red. Pressing `Left Arrow` and `Right Arrow` on the keyboard switches between the different fields, while pressing `Up Arrow` and `Down Arrow` increments and decrements the values respectively.
+
+10. This is the list of currently configured avatars. It is currently not possible to edit avatar names or IDs in the app directly, so if you want to rename an avatar, you need to do it in the config file directly.
+
+11. Here you can add a new avatar to the system. As mentioned before it's currently not possible to edit a configured avatar so make sure that the ID and name is correct.
+
 # Troubleshooting
 
 **coming soon!**
