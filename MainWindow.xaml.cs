@@ -219,7 +219,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                         break;
                     case CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE:
-                        fields[calibrationUpdateArgs.Field].InputText = calibrationUpdateArgs.FloatValue.ToString();
+                        fields[calibrationUpdateArgs.Field].InputText = calibrationUpdateArgs.FloatValue.ToString(CultureInfo.InvariantCulture);
                         updateCalibrationValue(calibrationUpdateArgs.Field, calibrationUpdateArgs.FloatValue);
                         break;
                 }
@@ -566,13 +566,13 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         private void FillAllCalibrationInputs(AvatarCalibration calibration)
         {
-            CalibrationScale.InputText = calibration.Scale.ToString();
-            CalibrationPosX.InputText = calibration.TranslationX.ToString();
-            CalibrationPosY.InputText = calibration.TranslationY.ToString();
-            CalibrationPosZ.InputText = calibration.TranslationZ.ToString();
-            CalibrationRotX.InputText = calibration.RotationX.ToString();
-            CalibrationRotY.InputText = calibration.RotationY.ToString();
-            CalibrationRotZ.InputText = calibration.RotationZ.ToString();
+            CalibrationScale.InputText = calibration.Scale.ToString(CultureInfo.InvariantCulture);
+            CalibrationPosX.InputText = calibration.TranslationX.ToString(CultureInfo.InvariantCulture);
+            CalibrationPosY.InputText = calibration.TranslationY.ToString(CultureInfo.InvariantCulture);
+            CalibrationPosZ.InputText = calibration.TranslationZ.ToString(CultureInfo.InvariantCulture);
+            CalibrationRotX.InputText = calibration.RotationX.ToString(CultureInfo.InvariantCulture);
+            CalibrationRotY.InputText = calibration.RotationY.ToString(CultureInfo.InvariantCulture);
+            CalibrationRotZ.InputText = calibration.RotationZ.ToString(CultureInfo.InvariantCulture);
         }
 
         private void ControlAllCalibrationInputs(bool enabled)
