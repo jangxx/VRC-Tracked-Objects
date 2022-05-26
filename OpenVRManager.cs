@@ -279,6 +279,8 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             this.currentCalibration = avatarCalibration;
 
+            this.CancelTokenSource = new CancellationTokenSource();
+
             this.currentThread = new Thread(() => CalibrationThreadMain(controllerHandle));
             this.currentThread.Name = "CalibrationThread";
             this.currentThread.IsBackground = true;
@@ -334,6 +336,30 @@ namespace VRC_OSC_ExternallyTrackedObject
                     var handler = CalibrationUpdate;
                     handler?.Invoke(this, args);
                 }
+
+                // do one initial update to show the current calibration
+                MathUtils.fillTransformMatrix44(ref currentTransformMatrix,
+                    (float)currentCalibration.RotationX,
+                    (float)currentCalibration.RotationY,
+                    (float)currentCalibration.RotationZ,
+                    (float)currentCalibration.TranslationX,
+                    (float)currentCalibration.TranslationY,
+                    (float)currentCalibration.TranslationZ,
+                    (float)currentCalibration.Scale,
+                    (float)currentCalibration.Scale,
+                    (float)currentCalibration.Scale
+                );
+
+                currentTransformMatrix.Multiply(OverlayXMat, m);
+                MathUtils.CopyMat34ToOVR(ref m, ref OverlayXMatOVR);
+                currentTransformMatrix.Multiply(OverlayYMat, m);
+                MathUtils.CopyMat34ToOVR(ref m, ref OverlayYMatOVR);
+                currentTransformMatrix.Multiply(OverlayZMat, m);
+                MathUtils.CopyMat34ToOVR(ref m, ref OverlayZMatOVR);
+
+                OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(OverlayXHandle, controllerHandle, ref OverlayXMatOVR);
+                OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(OverlayYHandle, controllerHandle, ref OverlayYMatOVR);
+                OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(OverlayZHandle, controllerHandle, ref OverlayZMatOVR);
 
                 while (InputKeyQueue.TryTake(out nextKey, -1, CancelTokenSource.Token))
                 {

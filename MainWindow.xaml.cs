@@ -720,7 +720,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                 string currentAvatar = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
 
                 // load values from inputs
-                CopyParametersToConfig(CurrentConfig.Avatars[currentAvatar]);
+                CopyInputValuesToConfig(CurrentConfig.Avatars[currentAvatar]);
 
                 StartTracking();
             }
