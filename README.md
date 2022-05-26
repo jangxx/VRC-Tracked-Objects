@@ -18,7 +18,7 @@ If you don't know how to do these things you need to look for another tutorial o
 
 3. Unpack the `TrackedObject Package` prefab.
 
-4. Move the `TrackedObject Container` into the root of your avatar and the `TrackedObject Anchor` either into the right hand or left hand bone transform. Where you put it will determine to which hand the object will be relatively placed so take into consideration with which hand you are going to hold the object more often. Due to the relative positioning, the tracking is by far the most stable when held in the hand to which the container is anchored, so if you're adding a bottle for example, anchoring it to your dominant hand is going to be the best option.
+4. Move the `TrackedObject Container` into the root of your avatar and the `TrackedObject Anchor` either into the right hand or left hand bone transform. Where you put it will determine to which hand the object will be relatively placed so take into consideration with which hand you are going to hold the object more often. Due to the relative positioning, the tracking is by far the most stable when held in the hand to which the container is anchored, so if you're adding a bottle for example, anchoring it to your dominant hand is going to be the best option. Set the position and rotation of the Anchor object to be all 0 (that normally causes the calibration cube to sit within the wrist).
 
 5. Find the VRCAvatars3Tools in the Unity menu and open the _AnimatorControllerCombiner_. Set the included _FX Layer Layers_ as the source controller and the FX layer on your avatar as the destination. Afterwards copy all layers and paramters by clicking on **Combine**.
 
@@ -83,6 +83,36 @@ This is an overview over the entire interface of the app as well as an explanati
 
 11. Here you can add a new avatar to the system. As mentioned before it's currently not possible to edit a configured avatar so make sure that the ID and name is correct.
 
+# Working principle
+
+Bringing externally tracked objects into VRChat comes with one main challenge: How do we synchronize the tracking universe of SteamVR with the transform of the avatar.
+The solution I came up with is this: Find a point on the avatar that has a (mostly) fixed offset to a tracked device in SteamVR. Ideally we could use the hip for this but:
+
+1. not everyone has FBT
+2. the relative position of the hip tracker to the hip bone changes every time the avatar is recalibrated.
+
+The next option would be the headset, but unfortunately the `Head` bone is not actually locked to the headset position with a static offset either. Instead it _mostly_ follows it, but especially when looking up and down it is very common for the HMD position and the `Head` bone to diverge quite a bit.
+
+The final option are the controllers and this is what I went with. The offset between the position of the controller and the `(Right|Left)Hand` bones is not completely static either, but from all available options it is by far the best one. Using a controller also comes with the advantage that the offset between the tracker and the controller will be essentially static if the tracker is held in the same hand, so for objects that are supposed to be picked up, using the controller is also the option with the lowest jitter.
+
+So then, with the controller's and the tracker's position in hand we can just start tracking, right? Unfortunately not yet.
+Each controller is different, but on most of them, the point that is actually tracked is the very tip of the controller, which obviously does not line up with the root of the `Hand` bone.
+In order to find this offset, a calibration step is needed.
+The result of the calibration is a 4x4 transformation matrix including scale which lets us calculate the position of the root of the `Hand` pretty accurately.
+
+The avatar is then set up in such a way that six nested GameObjects are used to translate and rotate a virtual object in all axes of position and rotation relative to the `Hand` bone.
+
+Afterwards the final calculation we need to do is:
+
+1. Calculate the inverse of the controller matrix and multiply it with the tracker matrix to get the transform from the controller to the tracker.
+2. Calculate the inverse of the controller -> `Hand` bone matrix (i.e. the calibration matrix) in order to get the transform from the `Hand` bone to the controller (this is of course not done once per update but only one time when tracking is started).
+3. Multiply the inverse of the calibration matrix with the controller -> tracker transform from step 1). This gives us a transform from the `Hand` bone -> controller -> tracker, i.e. a transform from the hand to the tracker.
+4. Extract the position and rotation from the resulting matrix. The position is simply the last column and the rotation can be extracted from the upper left 3x3 submatrix. To extract the rotation we actually need to invert the rotation component again however, since we are not interested in the rotation required to rotate an object from the `Hand` bone to the tracker, but instead the inverse rotation to counteract the relative rotation between the controller and the tracker. The virtual object already rotates with the controller after all, since it is parented to it. This needs to be undone to get the virtual object to line up with the tracker.
+
 # Troubleshooting
 
-**coming soon!**
+## The object moves in weird ways
+
+Check that the calibration is correct. Make sure that the calibration cube has exactly the same size on your avatar as it has when you first put it into the scene (that means its scale should be 1 if your avatar is not scaled and `1/scale` if it is).
+
+Also make sure that the Anchor is actually at (0,0,0) and with (0,0,0) rotation relative to the hand bone. Technically this is not strictly neccessary, but for your own sanity it is way easier to do all the transforming and rotating in the tracking app than doing some of it in Unity and some of it in the tracking app. Normally the tracking cube should sit in your wrist and because you remove it after the calibration anyway, there is no need to move it around to make it look like you're holding it in your hand.
