@@ -35,6 +35,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public EventHandler? TrackingActiveChanged;
         public EventHandler? AvatarChanged;
+        public EventHandler? ThreadCrashed;
 
         public void Start(string inputAddress, int inputPort, string outputAddress, int outputPort, Dictionary<string, AvatarConfig> config)
         {
@@ -82,7 +83,15 @@ namespace VRC_OSC_ExternallyTrackedObject
                     if (oscReceiver.State == OscSocketState.Connected)
                     {
                         OscPacket packet = oscReceiver.Receive();
-                        OscMessage msg = OscMessage.Parse(packet.ToString());
+
+                        string? msgStr = packet.ToString();
+
+                        if (msgStr == null)
+                        {
+                            continue; // skip this packet so we don't crash the OSC thread
+                        }
+
+                        OscMessage msg = OscMessage.Parse(msgStr);
                         
                         //Debug.WriteLine(packet.ToString());
 
@@ -101,7 +110,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                             if (currentConfig.ContainsKey(currentAvatar))
                             {
                                 // if the activate parameter is set to nothing we are always activated, otherwise we wait for the trigger
-                                this.currentlyActive = currentConfig[currentAvatar].Parameters.Activate == "";
+                                this.currentlyActive = (currentConfig[currentAvatar].Parameters.Activate == "");
                             }
 
                             {
@@ -142,6 +151,9 @@ namespace VRC_OSC_ExternallyTrackedObject
                 if (oscReceiver != null && oscReceiver.State == OscSocketState.Connected)
                 {
                     MessageBox.Show("OSC thread encountered an unexpected error: " + e.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    
+                    var handler = ThreadCrashed;
+                    handler?.Invoke(this, new EventArgs());
                 }
             }
         }

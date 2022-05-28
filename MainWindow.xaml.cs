@@ -163,7 +163,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             this.OscManager.AvatarChanged += OnAvatarChanged;
             this.OscManager.TrackingActiveChanged += OnTrackingActiveChanged;
-
+            this.OscManager.ThreadCrashed += OnOscThreadCrashed;
             
         }
 
@@ -321,6 +321,16 @@ namespace VRC_OSC_ExternallyTrackedObject
             }));
         }
 
+        private void OnOscThreadCrashed(object? sender, EventArgs args)
+        {
+            var dispatcher = Application.Current.Dispatcher;
+            dispatcher.BeginInvoke(new Action(() =>
+            {
+                ShowTrackingStopped();
+                this.OpenVRManager.StopThread();
+                this.OscManager.Stop();
+            }));
+        }
         private void updateCalibrationValue(CalibrationField field, float value)
         {
             if (CurrentAvatarId == null) return;
@@ -706,12 +716,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             if (this.OpenVRManager.IsAnyThreadRunning())
             {
-                StartTrackingButton.Content = "Start Tracking";
-                StartCalibrationButton.IsEnabled = true;
-                AvatarDropdown.IsEnabled = true;
-                CalibrationTab.IsEnabled = true;
-                AvatarsTab.IsEnabled = true;
-
+                ShowTrackingStopped();
                 this.OpenVRManager.StopThread();
                 this.OscManager.Stop();
             }
@@ -724,6 +729,16 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                 StartTracking();
             }
+        }
+
+        private void ShowTrackingStopped()
+        {
+            StartTrackingButton.Content = "Start Tracking";
+            CurrentStatusLabel.Content = "inactive";
+            StartCalibrationButton.IsEnabled = true;
+            AvatarDropdown.IsEnabled = true;
+            CalibrationTab.IsEnabled = true;
+            AvatarsTab.IsEnabled = true;
         }
 
         private void StartTracking()
