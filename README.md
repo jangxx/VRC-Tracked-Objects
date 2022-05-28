@@ -116,3 +116,16 @@ Afterwards the final calculation we need to do is:
 Check that the calibration is correct. Make sure that the calibration cube has exactly the same size on your avatar as it has when you first put it into the scene (that means its scale should be 1 if your avatar is not scaled and `1/scale` if it is).
 
 Also make sure that the Anchor is actually at (0,0,0) and with (0,0,0) rotation relative to the hand bone. Technically this is not strictly neccessary, but for your own sanity it is way easier to do all the transforming and rotating in the tracking app than doing some of it in Unity and some of it in the tracking app. Normally the tracking cube should sit in your wrist and because you remove it after the calibration anyway, there is no need to move it around to make it look like you're holding it in your hand.
+
+## The tracking suddenly got worse
+
+The most common reason for this problem that I have found is changes in the scale between the real world and VRChat.
+This can happen in a variety of ways:
+
+- When changing the "real height" in the settings
+- When chaning size measurement between wingspan and height
+- probably others too
+
+If you changed _anything at all_ that might be related to your scale in VRChat, try to run the calibration again and see if the size of the cubes still match up.
+More often than not they don't anymore and small tweaks to the scale are neccessary.
+Luckily it's only the scale that gets messed up so this calibration step should not take more than a few seconds.
