@@ -406,6 +406,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             if (config == null) return;
 
+            CurrentAvatarId = null;
             CurrentConfig = config;
 
             if (CurrentConfig.ControllerSerial != null && CurrentConfig.ControllerSerial.Length > 0) {
