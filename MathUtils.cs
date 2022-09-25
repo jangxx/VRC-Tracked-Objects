@@ -104,6 +104,26 @@ namespace VRC_OSC_ExternallyTrackedObject
             });
         }
 
+        public static Vector<float> extractRotationsFromMatrix44(Matrix<float> mat44)
+        {
+            return extractRotationsFromMatrix(mat44.SubMatrix(0, 3, 0, 3));
+        }
+
+        public static Vector<float> extractTranslationFromMatrix44(Matrix<float> mat44)
+        {
+            return mat44.Column(3);
+        }
+
+        public static Vector<float> extractScaleFromMatrix44(Matrix<float> mat44)
+        {
+            return Vector<float>.Build.DenseOfArray(new float[]
+            {
+                (float)mat44.Column(0).L2Norm(),
+                (float)mat44.Column(1).L2Norm(),
+                (float)mat44.Column(2).L2Norm(),
+            });
+        }
+
         // ported directly from https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
         public static Quaternion Mat33toQuat(Matrix<float> mat33)
         {
@@ -144,7 +164,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                 qz = 0.25 * S;
             }
 
-            return new Quaternion(qw, qx, qy, qz);
+            return new Quaternion(qw, qx, qy, qz).Normalized;
         }
 
         public static Matrix<float> QuatToMat33(Vector<float> quat)

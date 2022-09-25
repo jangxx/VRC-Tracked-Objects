@@ -42,7 +42,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         };
 
         public CalibrationUpdateType Type { get; set; }
-        public float FloatValue { get; set; }
+        public AvatarCalibration? CalibrationValues { get; set; }
         public CalibrationField Field { get; set; }
     }
 
@@ -390,8 +390,9 @@ namespace VRC_OSC_ExternallyTrackedObject
                         // increase current parameter value
                         case Key.Up:
                             {
-                                var updatedValue = changeParameterValue(currentCalibrationField, 1);
-                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, FloatValue = (float)updatedValue };
+                                transformMatrixInDirection(ref currentTransformMatrix, currentCalibrationField, 1);
+                                currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
+                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, CalibrationValues = currentCalibration };
                                 var handler = CalibrationUpdate;
                                 handler?.Invoke(this, args);
                                 break;
@@ -400,25 +401,14 @@ namespace VRC_OSC_ExternallyTrackedObject
                         // decrease current parameter value
                         case Key.Down:
                             {
-                                var updatedValue = changeParameterValue(currentCalibrationField, -1);
-                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, FloatValue = (float)updatedValue };
+                                transformMatrixInDirection(ref currentTransformMatrix, currentCalibrationField, -1);
+                                currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
+                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, CalibrationValues = currentCalibration };
                                 var handler = CalibrationUpdate;
                                 handler?.Invoke(this, args);
                                 break;
                             }
                     }
-
-                    MathUtils.fillTransformMatrix44(ref currentTransformMatrix,
-                        (float)currentCalibration.RotationX,
-                        (float)currentCalibration.RotationY,
-                        (float)currentCalibration.RotationZ,
-                        (float)currentCalibration.TranslationX,
-                        (float)currentCalibration.TranslationY,
-                        (float)currentCalibration.TranslationZ,
-                        (float)currentCalibration.Scale,
-                        (float)currentCalibration.Scale,
-                        (float)currentCalibration.Scale
-                    );
 
                     currentTransformMatrix.Multiply(OverlayXMat, m);
                     MathUtils.CopyMat34ToOVR(ref m, ref OverlayXMatOVR);
@@ -453,39 +443,67 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
         }
 
-        private double changeParameterValue(CalibrationField field, double direction)
+        private void transformMatrixInDirection(ref Matrix<float> calibrationMatrix, CalibrationField field, float direction)
         {
-            switch(field)
+            switch (field)
             {
                 case CalibrationField.POSX:
-                    currentCalibration.TranslationX += FixZero(0.005 * direction);
-                    return currentCalibration.TranslationX;
+                    {
+                        var transform = MathUtils.createTransformMatrix44(0, 0, 0, 0.005f * direction, 0, 0, 1, 1, 1);
+                        transform.Multiply(calibrationMatrix, calibrationMatrix);
+                        return;
+                    }
                 case CalibrationField.POSY:
-                    currentCalibration.TranslationY += FixZero(0.005 * direction);
-                    return currentCalibration.TranslationY;
+                    {
+                        var transform = MathUtils.createTransformMatrix44(0, 0, 0, 0, 0.005f * direction, 0, 1, 1, 1);
+                        transform.Multiply(calibrationMatrix, calibrationMatrix);
+                        return;
+                    }
                 case CalibrationField.POSZ:
-                    currentCalibration.TranslationZ += FixZero(0.005 * direction);
-                    return currentCalibration.TranslationZ;
-                case CalibrationField.SCALE:
-                    currentCalibration.Scale += FixZero(0.005 * direction);
-                    return currentCalibration.Scale;
+                    {
+                        var transform = MathUtils.createTransformMatrix44(0, 0, 0, 0, 0, 0.005f * direction, 1, 1, 1);
+                        transform.Multiply(calibrationMatrix, calibrationMatrix);
+                        return;
+                    }
                 case CalibrationField.ROTX:
-                    currentCalibration.RotationX += FixZero(0.01 * direction);
-                    return currentCalibration.RotationX;
+                    {
+                        var translate = MathUtils.extractTranslationFromMatrix44(calibrationMatrix).Clone();
+                        MathUtils.createTransformMatrix44(0, 0, 0, -translate[0], -translate[1], -translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0.01f * direction, 0, 0, 0, 0, 0, 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0, 0, 0, translate[0], translate[1], translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        return;
+                    }
                 case CalibrationField.ROTY:
-                    currentCalibration.RotationY += FixZero(0.01 * direction);
-                    return currentCalibration.RotationY;
+                    {
+                        var translate = MathUtils.extractTranslationFromMatrix44(calibrationMatrix).Clone();
+                        MathUtils.createTransformMatrix44(0, 0, 0, -translate[0], -translate[1], -translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0, 0.01f * direction, 0, 0, 0, 0, 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0, 0, 0, translate[0], translate[1], translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        return;
+                    }
                 case CalibrationField.ROTZ:
-                    currentCalibration.RotationZ += FixZero(0.01 * direction);
-                    return currentCalibration.RotationZ;
-                default:
-                    return 0;
+                    {
+                        var translate = MathUtils.extractTranslationFromMatrix44(calibrationMatrix).Clone();
+                        MathUtils.createTransformMatrix44(0, 0, 0, -translate[0], -translate[1], -translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0, 0, 0.01f * direction, 0, 0, 0, 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0, 0, 0, translate[0], translate[1], translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        return;
+                    }
+                case CalibrationField.SCALE:
+                    {
+                        var translate = MathUtils.extractTranslationFromMatrix44(calibrationMatrix).Clone();
+                        MathUtils.createTransformMatrix44(0, 0, 0, -translate[0], -translate[1], -translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(
+                            0, 0, 0,
+                            0, 0, 0,
+                            1 + 0.005f * direction,
+                            1 + 0.005f * direction,
+                            1 + 0.005f * direction
+                        ).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0, 0, 0, translate[0], translate[1], translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        return;
+                    }
             }
-        }
-
-        private double FixZero(double input)
-        {
-            return (input < 0.00001 && input > -0.00001) ? 0 : input;
         }
 
         private void ThrowOVRError(EVROverlayError err)

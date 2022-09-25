@@ -25,7 +25,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         public string RotationZ { get; set; } = "/avatar/parameters/OscTrackedRotZ";
     }
 
-    internal class AvatarCalibration
+    public class AvatarCalibration
     {
         public double Scale { get; set; } = 1;
         public double TranslationX { get; set; } = 0;
@@ -34,6 +34,34 @@ namespace VRC_OSC_ExternallyTrackedObject
         public double RotationX { get; set; } = 0;
         public double RotationY { get; set; } = 0;
         public double RotationZ { get; set; } = 0;
+
+        public void CopyFrom(AvatarCalibration other) {
+            Scale = other.Scale;
+            TranslationX = other.TranslationX;
+            TranslationY = other.TranslationY;
+            TranslationZ = other.TranslationZ;
+            RotationX = other.RotationX;
+            RotationY = other.RotationY;
+            RotationZ = other.RotationZ;
+        }
+
+        public static AvatarCalibration FromMatrix(Matrix<float> mat44)
+        {
+            var rotation = MathUtils.extractRotationsFromMatrix44(mat44);
+            var translation = MathUtils.extractTranslationFromMatrix44(mat44);
+            var scaleVec = MathUtils.extractScaleFromMatrix44(mat44);
+
+            var calibration = new AvatarCalibration();
+            calibration.Scale = scaleVec.AbsoluteMinimum(); // the scale should be almost exactly the same for all dimensions so let's just pick the smallest one
+            calibration.TranslationX = translation[0];
+            calibration.TranslationY = translation[1];
+            calibration.TranslationZ = translation[2];
+            calibration.RotationX = rotation[0];
+            calibration.RotationY = rotation[1];
+            calibration.RotationZ = rotation[2];
+
+            return calibration;
+        }
     }
 
     internal class AvatarConfig
@@ -219,11 +247,27 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                         break;
                     case CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE:
-                        fields[calibrationUpdateArgs.Field].InputText = calibrationUpdateArgs.FloatValue.ToString(CultureInfo.InvariantCulture);
-                        updateCalibrationValue(calibrationUpdateArgs.Field, calibrationUpdateArgs.FloatValue);
+                        if (CurrentAvatarId != null)
+                        {
+                            CurrentConfig.Avatars[CurrentAvatarId].Calibration.CopyFrom(calibrationUpdateArgs.CalibrationValues!);
+                        }
+
+                        CalibrationPosX.InputText = NumberToInput(calibrationUpdateArgs.CalibrationValues!.TranslationX);
+                        CalibrationPosY.InputText = NumberToInput(calibrationUpdateArgs.CalibrationValues!.TranslationY);
+                        CalibrationPosZ.InputText = NumberToInput(calibrationUpdateArgs.CalibrationValues!.TranslationZ);
+                        CalibrationRotX.InputText = NumberToInput(calibrationUpdateArgs.CalibrationValues!.RotationX);
+                        CalibrationRotY.InputText = NumberToInput(calibrationUpdateArgs.CalibrationValues!.RotationY);
+                        CalibrationRotZ.InputText = NumberToInput(calibrationUpdateArgs.CalibrationValues!.RotationZ);
+                        CalibrationScale.InputText = NumberToInput(calibrationUpdateArgs.CalibrationValues!.Scale);
                         break;
                 }
             }));
+        }
+
+        private string NumberToInput(double number)
+        {
+            var dec = Convert.ToDecimal(FixZero(number));
+            return Math.Round(dec, 6).ToString(CultureInfo.InvariantCulture);
         }
 
         // will be called within the OVR tracking thread,
@@ -240,7 +284,7 @@ namespace VRC_OSC_ExternallyTrackedObject
             var controllerToTracker = CurrentInverseCalibrationMatrix * _controllerToTracker;
             var controllerToTrackerNS = CurrentInverseCalibrationMatrixNoScale * _controllerToTracker;
 
-            var relativeTranslate = controllerToTracker.Column(3);
+            var relativeTranslate = MathUtils.extractTranslationFromMatrix44(controllerToTracker);
 
             var relativeRotation = MathUtils.extractRotationsFromMatrix(controllerToTrackerNS.Inverse().SubMatrix(0, 3, 0, 3));
 
@@ -330,35 +374,6 @@ namespace VRC_OSC_ExternallyTrackedObject
                 this.OpenVRManager.StopThread();
                 this.OscManager.Stop();
             }));
-        }
-        private void updateCalibrationValue(CalibrationField field, float value)
-        {
-            if (CurrentAvatarId == null) return;
-
-            switch(field)
-            {
-                case CalibrationField.POSX:
-                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.TranslationX = value;
-                    return;
-                case CalibrationField.POSY:
-                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.TranslationY = value;
-                    return;
-                case CalibrationField.POSZ:
-                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.TranslationZ = value;
-                    return;
-                case CalibrationField.ROTX:
-                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.RotationX = value;
-                    return;
-                case CalibrationField.ROTY:
-                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.RotationY = value;
-                    return;
-                case CalibrationField.ROTZ:
-                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.RotationZ = value;
-                    return;
-                case CalibrationField.SCALE:
-                    CurrentConfig.Avatars[CurrentAvatarId].Calibration.Scale = value;
-                    return;
-            }
         }
 
         private void CopySettingsToConfig()
@@ -882,6 +897,11 @@ namespace VRC_OSC_ExternallyTrackedObject
             {
                 TrackerDropdown.SelectedValue = currentTrackerSerial;
             }
+        }
+
+        private double FixZero(double input)
+        {
+            return (input < 0.00001 && input > -0.00001) ? 0 : input;
         }
     }
 }
