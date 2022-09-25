@@ -26,6 +26,12 @@ namespace VRC_OSC_ExternallyTrackedObject
         public OVRException(string message) : base(message) { }
     }
 
+    internal class DeviceListEntry
+    {
+        public ETrackedDeviceClass Type { get; set; }
+        public uint Handle { get; set; }
+    }
+
     internal class TrackedObjectListEntry
     {
         public uint Index { get; set; }
@@ -62,8 +68,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         private bool calibrationThreadRunning = false;
         private bool trackingThreadRunning = false;
         private bool trackingEnabled = false;
-        private Dictionary<string, uint> Controllers = new Dictionary<string, uint>();
-        private Dictionary<string, uint> Trackers = new Dictionary<string, uint>();
+        private Dictionary<string, DeviceListEntry> Devices = new Dictionary<string, DeviceListEntry>();
 
         public event EventHandler? CalibrationUpdate;
         public event EventHandler? TrackingData;
@@ -87,8 +92,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             if (cVR == null) return;
 
-            Controllers.Clear();
-            Trackers.Clear();
+            Devices.Clear();
 
             // this is not optimal, ideally we could put everything in the same array but I don't think c# slices actually support that?
             uint[] controllerIds = new uint[OpenVR.k_unMaxTrackedDeviceCount];
@@ -101,12 +105,18 @@ namespace VRC_OSC_ExternallyTrackedObject
                 for (uint i = 0; i < noOfControllers; i++)
                 {
                     uint id = controllerIds[i];
-                    Controllers.Add(GetStringTrackedDeviceProperty(id, ETrackedDeviceProperty.Prop_SerialNumber_String), id);
+                    Devices.Add(
+                        GetStringTrackedDeviceProperty(id, ETrackedDeviceProperty.Prop_SerialNumber_String),
+                        new DeviceListEntry { Handle = id, Type = ETrackedDeviceClass.Controller } 
+                    );
                 }
                 for (uint i = 0; i < noOfTrackers; i++)
                 {
                     uint id = trackerIds[i];
-                    Trackers.Add(GetStringTrackedDeviceProperty(id, ETrackedDeviceProperty.Prop_SerialNumber_String), id);
+                    Devices.Add(
+                        GetStringTrackedDeviceProperty(id, ETrackedDeviceProperty.Prop_SerialNumber_String),
+                        new DeviceListEntry { Handle = id, Type = ETrackedDeviceClass.GenericTracker }
+                    );
                 }
             }
             catch (OVRException e)
@@ -117,12 +127,17 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public List<string> GetControllers()
         {
-            return Controllers.Keys.ToList();
+            return Devices.Keys.Where(id => Devices[id].Type == ETrackedDeviceClass.Controller).ToList();
         }
 
         public List<string> GetTrackers()
         {
-            return Trackers.Keys.ToList();
+            return Devices.Keys.Where(id => Devices[id].Type == ETrackedDeviceClass.GenericTracker).ToList();
+        }
+
+        public List<string> GetAllDevices()
+        {
+            return Devices.Keys.ToList();
         }
 
         private string GetStringTrackedDeviceProperty(uint deviceIndex, ETrackedDeviceProperty prop)
@@ -210,20 +225,20 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             if (currentThread != null) return false;
 
-            if (!Controllers.ContainsKey(controllerSn))
+            if (!Devices.ContainsKey(controllerSn))
             {
                 MessageBox.Show("The controller " + controllerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
-            if (!Trackers.ContainsKey(trackerSn))
+            if (!Devices.ContainsKey(trackerSn))
             {
                 MessageBox.Show("The tracker " + trackerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
-            uint controllerHandle = Controllers[controllerSn];
-            uint trackerHandle = Trackers[trackerSn];
+            uint controllerHandle = Devices[controllerSn].Handle;
+            uint trackerHandle = Devices[trackerSn].Handle;
 
             this.CancelTokenSource = new CancellationTokenSource();
 
@@ -269,13 +284,13 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             if (currentThread != null) return;
 
-            if (!Controllers.ContainsKey(controllerSn))
+            if (!Devices.ContainsKey(controllerSn))
             {
                 MessageBox.Show("The controller " + controllerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            uint controllerHandle = Controllers[controllerSn];
+            uint controllerHandle = Devices[controllerSn].Handle;
 
             this.currentCalibration = avatarCalibration;
 
