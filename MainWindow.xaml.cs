@@ -74,6 +74,7 @@ namespace VRC_OSC_ExternallyTrackedObject
     internal class Configuration
     {
         public bool Autostart { get; set; } = false;
+        public bool AllowAllDevices { get; set; } = false;
         public string OscInputAddress { get; set; } = "127.0.0.1:9001";
         public string OscOutputAddress { get; set; } = "127.0.0.1:9000";
         public string? ControllerSerial { get; set; }
@@ -162,21 +163,11 @@ namespace VRC_OSC_ExternallyTrackedObject
             InitializeComponent();
             this.DataContext = this;
 
-            //AvatarList.Add(new AvatarListItem("testid", "test name"));
-
-            //var config = new AvatarConfig();
-            //config.Name = "test name";
-
-            //CurrentConfig.Avatars.Add("testid", config);
-
             AvatarDropdown.ItemsSource = AvatarList;
             AvatarListBox.ItemsSource = AvatarList;
 
             ControllerDropdown.ItemsSource = ControllerList;
             TrackerDropdown.ItemsSource = TrackerList;
-
-            //this.DisplayProperties = new MainWindowProperties();
-            //this.DisplayProperties.AllInputsEnabled = true;
 
             OSCInputAddress.InputText = CurrentConfig.OscInputAddress;
             OSCOutputAddress.InputText = CurrentConfig.OscOutputAddress;
@@ -868,13 +859,18 @@ namespace VRC_OSC_ExternallyTrackedObject
             this.OpenVRManager.UpdateControllers();
 
             this.ControllerList.Clear();
-            foreach (string controllerId in this.OpenVRManager.GetControllers())
+
+            List<string> controllers = (CurrentConfig.AllowAllDevices) ? this.OpenVRManager.GetAllDevices() : this.OpenVRManager.GetControllers();
+
+            foreach (string controllerId in controllers)
             {
                 this.ControllerList.Add(new DeviceListItem(controllerId));
             }
 
             this.TrackerList.Clear();
-            foreach (string trackerId in this.OpenVRManager.GetTrackers())
+
+            List<string> trackers = (CurrentConfig.AllowAllDevices) ? this.OpenVRManager.GetAllDevices() : this.OpenVRManager.GetTrackers();
+            foreach (string trackerId in trackers)
             {
                 this.TrackerList.Add(new DeviceListItem(trackerId));
             }
