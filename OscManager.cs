@@ -18,7 +18,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
     public class AvatarChangedArgs : EventArgs
     {
-        public string Id { get; set; }
+        public string Id { get; set; } = "";
     }
 
     internal class OscManager
@@ -28,7 +28,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         private CancellationTokenSource CancelTokenSource = new CancellationTokenSource();
         private Thread? currentThread = null;
         private Dictionary<string, AvatarConfig>? currentConfig = null;
-        private string currentAvatar = null;
+        private string? currentAvatar = null;
         private bool currentlyActive = false;
         private OscSender? oscSender;
         private OscReceiver? oscReceiver;
@@ -91,7 +91,16 @@ namespace VRC_OSC_ExternallyTrackedObject
                             continue; // skip this packet so we don't crash the OSC thread
                         }
 
-                        OscMessage msg = OscMessage.Parse(msgStr);
+                        OscMessage msg;
+
+                        try
+                        {
+                            msg = OscMessage.Parse(msgStr);
+                        }
+                        catch
+                        {
+                            continue;
+                        }
                         
                         //Debug.WriteLine(packet.ToString());
 

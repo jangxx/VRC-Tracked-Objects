@@ -153,8 +153,8 @@ namespace VRC_OSC_ExternallyTrackedObject
         private OscManager OscManager = new OscManager();
         private string? CurrentAvatarId;
 
-        private Matrix<float> CurrentInverseCalibrationMatrix = null;
-        private Matrix<float> CurrentInverseCalibrationMatrixNoScale = null;
+        private Matrix<float>? CurrentInverseCalibrationMatrix = null;
+        private Matrix<float>? CurrentInverseCalibrationMatrixNoScale = null;
 
         public static float MAX_RELATIVE_DISTANCE = 1; // this is the max distance the tracker can be away from the controller. this is important for scaling the value since vrchat wants a value between -1 and 1
 
@@ -267,7 +267,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             var trackingEventArgs = (TrackingDataArgs)args;
 
-            if (CurrentInverseCalibrationMatrix == null) return;
+            if (CurrentInverseCalibrationMatrix == null || trackingEventArgs.Controller == null) return;
 
             var controllerInverse = trackingEventArgs.Controller.Inverse();
             var _controllerToTracker = controllerInverse * trackingEventArgs.Tracker;
@@ -392,13 +392,13 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
         }
 
-        public void LoadConfig(String path)
+        public void LoadConfig(string path)
         {
             string jsonString = File.ReadAllText(path);
 
             if (jsonString == null) return;
 
-            Configuration config = new Configuration();
+            Configuration? config = new Configuration();
 
             try
             {
@@ -779,7 +779,7 @@ namespace VRC_OSC_ExternallyTrackedObject
             string outputAddress;
             int outputPort;
 
-            if (IPEndPoint.TryParse(OSCInputAddress.InputText, out IPEndPoint endpoint))
+            if (IPEndPoint.TryParse(OSCInputAddress.InputText, out IPEndPoint? endpoint))
             {
                 inputAddress = endpoint.Address.ToString();
                 inputPort = endpoint.Port;
@@ -836,7 +836,11 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             if (sender == null) return;
 
-            object selectedValue = (sender as ComboBox).SelectedValue;
+            ComboBox? senderComboBox = sender as ComboBox;
+
+            if (senderComboBox == null) return;
+
+            object selectedValue = senderComboBox.SelectedValue;
 
             if (selectedValue == null) return;
 
@@ -847,7 +851,11 @@ namespace VRC_OSC_ExternallyTrackedObject
         {
             if (sender == null) return;
 
-            object selectedValue = (sender as ComboBox).SelectedValue;
+            ComboBox? senderComboBox = sender as ComboBox;
+
+            if (senderComboBox == null) return;
+
+            object selectedValue = senderComboBox.SelectedValue;
 
             if (selectedValue == null) return;
 

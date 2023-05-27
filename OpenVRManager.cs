@@ -35,7 +35,7 @@ namespace VRC_OSC_ExternallyTrackedObject
     internal class TrackedObjectListEntry
     {
         public uint Index { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
     }
 
@@ -305,6 +305,8 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public void CalibrationThreadMain(uint controllerHandle)
         {
+            if (this.currentCalibration == null) return;
+
             ulong OverlayXHandle = OpenVR.k_ulOverlayHandleInvalid;
             ulong OverlayYHandle = OpenVR.k_ulOverlayHandleInvalid;
             ulong OverlayZHandle = OpenVR.k_ulOverlayHandleInvalid;
