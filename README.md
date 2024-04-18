@@ -4,7 +4,10 @@ A project to bring real world objects into the virtual world of VRChat. The obje
 
 ## Getting Started
 
-Download the latest version of the software from the [Releases](https://github.com/jangxx/VRC-OSC-TrackedObjectApp/releases/latest) page. There are two downloads, the app itself and a Unity package containing the required avatar setup. You will also need the [VRCAvatars3Tools](https://booth.pm/en/items/2207020), which you can download from booth for free in order to use the _AnimatorControllerCombiner_ and the _ExpressionParametersCombiner_.
+Before getting started, make sure you have the ".NET Desktop Runtime 6.0" installed (latest version at time of writing is 6.0.29). You can download it [here](https://dotnet.microsoft.com/en-us/download/dotnet/6.0).
+Make sure you specifically download and install the **Desktop Runtime**, since the app is not going to run otherwise.
+
+Afterwards download the latest version of the software from the [Releases](https://github.com/jangxx/VRC-OSC-TrackedObjectApp/releases/latest) page. There are two downloads, the app itself and a Unity package containing the required avatar setup. You will also need the [VRCAvatars3Tools](https://booth.pm/en/items/2207020), which you can download from booth for free in order to use the _AnimatorControllerCombiner_ and the _ExpressionParametersCombiner_.
 
 ## Setup
 
