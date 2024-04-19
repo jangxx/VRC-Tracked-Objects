@@ -64,14 +64,14 @@ namespace VRC_OSC_ExternallyTrackedObject
         }
     }
 
-    internal class AvatarConfig
+    internal class AvatarConfigV0
     {
         public string Name { get; set; } = "";
         public AvatarParams Parameters { get; set; } = new AvatarParams();
         public AvatarCalibration Calibration { get; set; } = new AvatarCalibration();
     }
 
-    internal class Configuration
+    internal class ConfigurationV0
     {
         public bool Autostart { get; set; } = false;
         public bool AllowAllDevices { get; set; } = false;
@@ -79,22 +79,66 @@ namespace VRC_OSC_ExternallyTrackedObject
         public string OscOutputAddress { get; set; } = "127.0.0.1:9000";
         public string? ControllerSerial { get; set; }
         public string? TrackerSerial { get; set; }
-        public Dictionary<string, AvatarConfig> Avatars { get; set; } = new Dictionary<string, AvatarConfig>();
+        public Dictionary<string, AvatarConfigV0> Avatars { get; set; } = new Dictionary<string, AvatarConfigV0>();
     }
 
-    internal class AvatarListItem
+    internal class AvatarConfigAvatar
+    {
+        public string Name { get; set; } = "";
+        public string Id { get; set; } = "";
+    }
+
+    internal class AvatarConfig
+    {
+        public string Name { get; set; } = "";
+        public AvatarParams Parameters { get; set; } = new AvatarParams();
+        public AvatarCalibration Calibration { get; set; } = new AvatarCalibration();
+        public List<AvatarConfigAvatar> Avatars { get; set; } = new List<AvatarConfigAvatar>();
+    }
+
+    internal class Configuration
+    {
+        public int Version { get; set; } = 0;
+        public bool Autostart { get; set; } = false;
+        public bool AllowAllDevices { get; set; } = false;
+        public string OscInputAddress { get; set; } = "127.0.0.1:9001";
+        public string OscOutputAddress { get; set; } = "127.0.0.1:9000";
+        public string? ControllerSerial { get; set; }
+        public string? TrackerSerial { get; set; }
+        public List<AvatarConfig> Configurations { get; set; } = new List<AvatarConfig>();
+    }
+
+    internal class ConfigurationListItem
+    {
+        public string Name { get; set; }
+        public int AvatarCount { get; set; }
+
+        public string DisplayName
+        {
+            get { return Name + " (" + AvatarCount + " avatars)"; }
+        }
+
+        public ConfigurationListItem(string name, int avatarCount)
+        {
+            Name = name;
+            AvatarCount = avatarCount;
+        }
+    }
+
+    internal class ConfigurationAvatarListItem
     {
         public string Name { get; set; }
         public string Id { get; set; }
+
         public string DisplayName
         {
             get { return Name + " (" + Id + ")"; }
         }
 
-        public AvatarListItem(string id, string name)
+        public ConfigurationAvatarListItem(string name, string id)
         {
-            Id = id;
             Name = name;
+            Id = id;
         }
     }
 
@@ -145,13 +189,14 @@ namespace VRC_OSC_ExternallyTrackedObject
     public partial class MainWindow : Window
     {
         private Configuration CurrentConfig = new Configuration();
-        private ObservableCollection<AvatarListItem> AvatarList = new ObservableCollection<AvatarListItem>();
+        private ObservableCollection<ConfigurationListItem> ConfigurationList = new ObservableCollection<ConfigurationListItem>();
+        private ObservableCollection<ConfigurationAvatarListItem> ConfigurationAvatarList = new ObservableCollection<ConfigurationAvatarListItem>();
         private ObservableCollection<DeviceListItem> ControllerList = new ObservableCollection<DeviceListItem>();
         private ObservableCollection<DeviceListItem> TrackerList = new ObservableCollection<DeviceListItem>();
         //public MainWindowProperties DisplayProperties { get; set; }
         private OpenVRManager OpenVRManager = new OpenVRManager();
         private OscManager OscManager = new OscManager();
-        private string? CurrentAvatarId;
+        private int? CurrentSelectedConfiguration;
 
         private Matrix<float>? CurrentInverseCalibrationMatrix = null;
         private Matrix<float>? CurrentInverseCalibrationMatrixNoScale = null;
@@ -163,8 +208,9 @@ namespace VRC_OSC_ExternallyTrackedObject
             InitializeComponent();
             this.DataContext = this;
 
-            AvatarDropdown.ItemsSource = AvatarList;
-            AvatarListBox.ItemsSource = AvatarList;
+            ConfigurationDropdown.ItemsSource = ConfigurationList;
+            ConfigurationListBox.ItemsSource = ConfigurationList;
+            ConfigurationAvatarsListBox.ItemsSource = ConfigurationAvatarList;
 
             ControllerDropdown.ItemsSource = ControllerList;
             TrackerDropdown.ItemsSource = TrackerList;
@@ -172,9 +218,9 @@ namespace VRC_OSC_ExternallyTrackedObject
             OSCInputAddress.InputText = CurrentConfig.OscInputAddress;
             OSCOutputAddress.InputText = CurrentConfig.OscOutputAddress;
 
-            if (AvatarList.Count > 0)
+            if (ConfigurationList.Count > 0)
             {
-                AvatarDropdown.SelectedIndex = 0;
+                ConfigurationDropdown.SelectedIndex = 0;
             }
 
             this.OpenVRManager.CalibrationUpdate += OnCalibrationUpdate;
@@ -202,6 +248,21 @@ namespace VRC_OSC_ExternallyTrackedObject
             {
                 StartTracking();
             }
+        }
+
+        private AvatarConfig? FindAvatarConfig(string avatarId)
+        {
+            foreach (var config in CurrentConfig.Configurations)
+            {
+                foreach (var configAvatar in config.Avatars) {
+                    if (configAvatar.Id == avatarId)
+                    {
+                        return config;
+                    }
+                }
+            }
+
+            return null;
         }
 
         // this will be called within the calibration thread so we need to inject the event back into the UI thread
@@ -238,9 +299,10 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                         break;
                     case CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE:
-                        if (CurrentAvatarId != null)
+                        if (CurrentSelectedConfiguration.HasValue)
                         {
-                            CurrentConfig.Avatars[CurrentAvatarId].Calibration.CopyFrom(calibrationUpdateArgs.CalibrationValues!);
+                            CurrentConfig.Configurations[CurrentSelectedConfiguration.Value].Calibration.CopyFrom(calibrationUpdateArgs.CalibrationValues!);
+
                         }
 
                         CalibrationPosX.InputText = NumberToInput(calibrationUpdateArgs.CalibrationValues!.TranslationX);
@@ -335,11 +397,13 @@ namespace VRC_OSC_ExternallyTrackedObject
             {
                 Debug.WriteLine("Avatar changed to " + avatarChangeArgs.Id);
 
-                if (CurrentConfig.Avatars.ContainsKey(avatarChangeArgs.Id))
+                var config = FindAvatarConfig(avatarChangeArgs.Id);
+
+                if (config != null)
                 {
                     Debug.WriteLine("we know this avatar, creating inverse calibration matrix");
 
-                    var calibration = CurrentConfig.Avatars[avatarChangeArgs.Id].Calibration;
+                    var calibration = config.Calibration;
 
                     CurrentInverseCalibrationMatrix = MathUtils.createTransformMatrix44(
                         (float)calibration.RotationX, (float)calibration.RotationY, (float)calibration.RotationZ,
@@ -376,9 +440,9 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         private void Btn_saveConfig(object sender, RoutedEventArgs e)
         {
-            if (CurrentAvatarId != null)
+            if (CurrentSelectedConfiguration.HasValue)
             {
-                CopyInputValuesToConfig(CurrentConfig.Avatars[CurrentAvatarId]);
+                CopyInputValuesToConfig(CurrentConfig.Configurations[CurrentSelectedConfiguration.Value]);
             }
 
             CopySettingsToConfig();
@@ -412,7 +476,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             if (config == null) return;
 
-            CurrentAvatarId = null;
+            CurrentSelectedConfiguration = null;
             CurrentConfig = config;
 
             if (CurrentConfig.ControllerSerial != null && CurrentConfig.ControllerSerial.Length > 0) {
@@ -460,15 +524,15 @@ namespace VRC_OSC_ExternallyTrackedObject
             OSCOutputAddress.InputText = CurrentConfig.OscOutputAddress;
             AutostartCheckbox.IsChecked = CurrentConfig.Autostart;
 
-            AvatarList.Clear();
-            foreach (var avi in CurrentConfig.Avatars)
+            ConfigurationList.Clear();
+            foreach (var configItem in CurrentConfig.Configurations)
             {
-                AvatarList.Add(new AvatarListItem(avi.Key, avi.Value.Name));
+                ConfigurationList.Add(new ConfigurationListItem(configItem.Name, configItem.Avatars.Count));
             }
 
-            if (AvatarList.Count > 0)
+            if (ConfigurationList.Count > 0)
             {
-                AvatarDropdown.SelectedIndex = 0;
+                ConfigurationDropdown.SelectedIndex = 0;
             }
         }
 
@@ -482,7 +546,44 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
         }
 
-        private void Btn_addAvatar(object sender, RoutedEventArgs e)
+        private void Btn_addConfiguration(object sender, RoutedEventArgs e)
+        {
+            if (NewConfigurationName.InputText == "" || NewConfigurationName.InputText == null)
+            {
+                MessageBox.Show("The name field can not be empty", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var configurationName = NewConfigurationName.InputText;
+
+            var config = new AvatarConfig();
+            config.Name = configurationName;
+
+            var listItem = new ConfigurationListItem(configurationName, config.Avatars.Count);
+            ConfigurationList.Add(listItem);
+
+            NewConfigurationName.InputText = "";
+
+            if (ConfigurationList.Count == 1)
+            {
+                ConfigurationDropdown.SelectedIndex = 0;
+            }
+        }
+
+        private void Btn_deleteConfiguration(object sender, RoutedEventArgs e)
+        {
+            if (ConfigurationListBox.SelectedItem == null) return;
+
+            CurrentConfig.Configurations.RemoveAt(ConfigurationListBox.SelectedIndex);
+            ConfigurationList.RemoveAt(ConfigurationListBox.SelectedIndex);
+        }
+
+        private void Btn_deleteAvatarFromConfiguration(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Btn_addAvatarToConfiguration(object sender, RoutedEventArgs e)
         {
             if (NewAvatarId.InputText == "" || NewAvatarId.InputText == null)
             {
@@ -498,49 +599,48 @@ namespace VRC_OSC_ExternallyTrackedObject
             var avatarId = NewAvatarId.InputText;
             var avatarName = NewAvatarName.InputText;
 
-            var config = new AvatarConfig();
-            config.Name = avatarName;
+            var avatarConfig = new AvatarConfigAvatar();
+            avatarConfig.Name = avatarName;
+            avatarConfig.Id = avatarId;
 
-            CurrentConfig.Avatars.Add(avatarId, config);
+            var currentConfig = CurrentConfig.Configurations[ConfigurationListBox.SelectedIndex];
 
-            var listItem = new AvatarListItem(avatarId, avatarName);
-            AvatarList.Add(listItem);
+            currentConfig.Avatars.Add(avatarConfig);
+
+            UpdateConfigurationAvatarList();
 
             NewAvatarId.InputText = "";
             NewAvatarName.InputText = "";
+        }
 
-            if (AvatarList.Count == 1)
+        private void UpdateConfigurationAvatarList()
+        {
+            ConfigurationAvatarList.Clear();
+
+            foreach (var avatarConfig in CurrentConfig.Configurations[ConfigurationListBox.SelectedIndex].Avatars)
             {
-                AvatarDropdown.SelectedIndex = 0;
+                ConfigurationAvatarList.Add(new ConfigurationAvatarListItem(avatarConfig.Name, avatarConfig.Id));
             }
         }
 
-        private void Btn_deleteAvatar(object sender, RoutedEventArgs e)
+        private void ConfigurationDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (AvatarListBox.SelectedItem == null) return;
-
-            CurrentConfig.Avatars.Remove(((AvatarListItem)AvatarListBox.SelectedItem).Id);
-            AvatarList.Remove((AvatarListItem)AvatarListBox.SelectedItem);
-        }
-
-        private void AvatarDropdown_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (AvatarDropdown.SelectedItem == null)
+            if (ConfigurationDropdown.SelectedItem == null)
             {
                 ClearAndDisableAllInputs();
                 return;
             }
 
             // first, store all the current input values in the config object
-            if (CurrentAvatarId != null && CurrentConfig.Avatars.ContainsKey(CurrentAvatarId))
+            if (CurrentSelectedConfiguration.HasValue)
             {
-                var currentAvatarConfig = CurrentConfig.Avatars[CurrentAvatarId];
+                var currentAvatarConfig = CurrentConfig.Configurations[CurrentSelectedConfiguration.Value];
                 CopyInputValuesToConfig(currentAvatarConfig);
             }
 
             // afterwards switch everything over to the new avatar
-            CurrentAvatarId = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
-            var avatarConfig = CurrentConfig.Avatars[CurrentAvatarId];
+            CurrentSelectedConfiguration = ConfigurationDropdown.SelectedIndex;
+            var avatarConfig = CurrentConfig.Configurations[CurrentSelectedConfiguration.Value];
 
             FillAndEnableAllInputs(avatarConfig);
 
@@ -670,9 +770,9 @@ namespace VRC_OSC_ExternallyTrackedObject
             {
                 StartCalibrationButton.Content = "Start Calibration";
                 StartTrackingButton.IsEnabled = true;
-                AvatarDropdown.IsEnabled = true;
+                ConfigurationDropdown.IsEnabled = true;
                 TrackingTab.IsEnabled = true;
-                AvatarsTab.IsEnabled = true;
+                ConfigurationsTab.IsEnabled = true;
 
                 this.OpenVRManager.StopThread();
 
@@ -693,27 +793,27 @@ namespace VRC_OSC_ExternallyTrackedObject
                     return;
                 }
                 
-                if (AvatarDropdown.SelectedItem == null)
+                if (ConfigurationDropdown.SelectedIndex == -1)
                 {
                     MessageBox.Show("No avatar selected. You need to select an avatar to calibrate the values for.", "Avatar missing", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 string currentController = ((DeviceListItem)ControllerDropdown.SelectedItem).Serial;
-                string currentAvatar = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
+                var currentConfiguration = CurrentConfig.Configurations[ConfigurationDropdown.SelectedIndex];
 
                 // load values from inputs
-                CopyCalibrationValuesToConfig(CurrentConfig.Avatars[currentAvatar]);
+                CopyCalibrationValuesToConfig(currentConfiguration);
 
                 // copy the current calibration to the calibration thread
                 // updates are then sent by the calibration thread via events
-                AvatarCalibration calibration = CurrentConfig.Avatars[currentAvatar].Calibration;
+                AvatarCalibration calibration = currentConfiguration.Calibration;
 
                 StartCalibrationButton.Content = "Stop Calibration";
                 StartTrackingButton.IsEnabled = false;
-                AvatarDropdown.IsEnabled = false;
+                ConfigurationDropdown.IsEnabled = false;
                 TrackingTab.IsEnabled = false;
-                AvatarsTab.IsEnabled = false;
+                ConfigurationsTab.IsEnabled = false;
 
                 this.OpenVRManager.StartCalibrationThread(currentController, calibration);
             }
@@ -729,10 +829,10 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
             else
             {
-                string currentAvatar = ((AvatarListItem)AvatarDropdown.SelectedItem).Id;
+                var currentConfiguration = CurrentConfig.Configurations[ConfigurationDropdown.SelectedIndex];
 
                 // load values from inputs
-                CopyInputValuesToConfig(CurrentConfig.Avatars[currentAvatar]);
+                CopyInputValuesToConfig(currentConfiguration);
 
                 StartTracking();
             }
@@ -743,9 +843,9 @@ namespace VRC_OSC_ExternallyTrackedObject
             StartTrackingButton.Content = "Start Tracking";
             CurrentStatusLabel.Content = "inactive";
             StartCalibrationButton.IsEnabled = true;
-            AvatarDropdown.IsEnabled = true;
+            ConfigurationDropdown.IsEnabled = true;
             CalibrationTab.IsEnabled = true;
-            AvatarsTab.IsEnabled = true;
+            ConfigurationsTab.IsEnabled = true;
         }
 
         private void StartTracking()
@@ -810,11 +910,11 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             StartTrackingButton.Content = "Stop Tracking";
             StartCalibrationButton.IsEnabled = false;
-            AvatarDropdown.IsEnabled = false;
+            ConfigurationDropdown.IsEnabled = false;
             CalibrationTab.IsEnabled = false;
-            AvatarsTab.IsEnabled = false;
+            ConfigurationsTab.IsEnabled = false;
 
-            this.OscManager.Start(inputAddress, inputPort, outputAddress, outputPort, CurrentConfig.Avatars);
+            this.OscManager.Start(inputAddress, inputPort, outputAddress, outputPort, CurrentConfig.Configurations);
         }
 
         private void MainWindowName_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

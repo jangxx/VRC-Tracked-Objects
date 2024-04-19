@@ -9,7 +9,7 @@
              d:DesignHeight="30" d:DesignWidth="350">
     <Grid Height="30" x:Name="OuterShell">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="150"></ColumnDefinition>
+            <ColumnDefinition Width="{Binding LabelWidth}"></ColumnDefinition>
             <ColumnDefinition Width="*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Label Height="28" Content="{Binding LabelText}" HorizontalAlignment="Left"></Label>

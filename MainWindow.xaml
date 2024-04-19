@@ -20,8 +20,8 @@
                     <Border BorderThickness="5,5,5,5">
                         <CheckBox Content="Start tracking when launched from config file" ToolTip="Automatically start tracking when this config file is loaded as a launch parameter" x:Name="AutostartCheckbox"></CheckBox>
                     </Border>
-                    <local:LabeledInput LabelText="OSC Input Address" x:Name="OSCInputAddress"></local:LabeledInput>
-                    <local:LabeledInput LabelText="OSC Output Address" x:Name="OSCOutputAddress"></local:LabeledInput>
+                    <local:LabeledInput LabelWidth="150" LabelText="OSC Input Address" x:Name="OSCInputAddress"></local:LabeledInput>
+                    <local:LabeledInput LabelWidth="150" LabelText="OSC Output Address" x:Name="OSCOutputAddress"></local:LabeledInput>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="40"></ColumnDefinition>
@@ -40,19 +40,19 @@
                     </Grid>
                 </StackPanel>
             </GroupBox>
-            <ComboBox DockPanel.Dock="Top" Margin="5,5,5,5" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="AvatarDropdown" SelectionChanged="AvatarDropdown_SelectionChanged" />
+            <ComboBox DockPanel.Dock="Top" Margin="5,5,5,5" DisplayMemberPath="Name" SelectedValuePath="Id" x:Name="ConfigurationDropdown" SelectionChanged="ConfigurationDropdown_SelectionChanged" />
             <TabControl>
                 <TabItem Header="Tracking" x:Name="TrackingTab">
                     <StackPanel>
                         <GroupBox Header="Parameters">
                             <StackPanel>
-                                <local:LabeledInput LabelText="Activate (bool) [optional]" x:Name="ParamTrigger"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Position X (float)" x:Name="ParamPosX"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Position Y (float)" x:Name="ParamPosY"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Position Z (float)" x:Name="ParamPosZ"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Rotation X (float)" x:Name="ParamRotX"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Rotation Y (float)" x:Name="ParamRotY"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Rotation Z (float)" x:Name="ParamRotZ"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Activate (bool) [optional]" x:Name="ParamTrigger"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Position X (float)" x:Name="ParamPosX"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Position Y (float)" x:Name="ParamPosY"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Position Z (float)" x:Name="ParamPosZ"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation X (float)" x:Name="ParamRotX"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Y (float)" x:Name="ParamRotY"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Z (float)" x:Name="ParamRotZ"></local:LabeledInput>
                             </StackPanel>
                         </GroupBox>
                         <Grid Height="30">
@@ -70,27 +70,47 @@
                     <StackPanel>
                         <GroupBox Header="Calibration Values">
                             <StackPanel>
-                                <local:LabeledInput LabelText="Scale" x:Name="CalibrationScale"/>
-                                <local:LabeledInput LabelText="Translation X" x:Name="CalibrationPosX"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Translation Y" x:Name="CalibrationPosY"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Translation Z" x:Name="CalibrationPosZ"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Rotation X" x:Name="CalibrationRotX"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Rotation Y" x:Name="CalibrationRotY"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Rotation Z" x:Name="CalibrationRotZ"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Scale" x:Name="CalibrationScale"/>
+                                <local:LabeledInput LabelWidth="150" LabelText="Translation X" x:Name="CalibrationPosX"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Translation Y" x:Name="CalibrationPosY"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Translation Z" x:Name="CalibrationPosZ"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation X" x:Name="CalibrationRotX"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Y" x:Name="CalibrationRotY"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Z" x:Name="CalibrationRotZ"></local:LabeledInput>
                             </StackPanel>
                         </GroupBox>
                         <Button Margin="5,5,5,5" Height="25" x:Name="StartCalibrationButton" Click="StartCalibrationButton_Click">Start Calibration</Button>
                     </StackPanel>
                 </TabItem>
-                <TabItem Header="Avatars" x:Name="AvatarsTab">
+                <TabItem Header="Configurations" x:Name="ConfigurationsTab">
                     <StackPanel>
-                        <ListBox Margin="5,5,5,5"  Height="100" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="AvatarListBox"/>
-                        <Button Margin="5,0,5,5" Height="20" Click="Btn_deleteAvatar">Delete</Button>
-                        <GroupBox Header="Add avatar">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition></ColumnDefinition>
+                                <ColumnDefinition></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <ListBox Grid.Column="0" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="ConfigurationListBox" HorizontalAlignment="Stretch" Margin="5,5,5,5"/>
+                            <StackPanel Grid.Column="1" Margin="5,5,5,5">
+                                <Button Margin="5,0,5,5" Height="20" Click="Btn_deleteConfiguration">Delete configuration</Button>
+                                <GroupBox Header="Add configuration">
+                                    <StackPanel>
+                                        <local:LabeledInput LabelWidth="50" LabelText="Name" x:Name="NewConfigurationName"></local:LabeledInput>
+                                        <Button Margin="5,5,5,5" Height="20" Click="Btn_addConfiguration">Add configuration</Button>
+                                    </StackPanel>
+                                </GroupBox>
+                            </StackPanel>
+                        </Grid>
+                        <GroupBox Header="Avatars in configuration">
                             <StackPanel>
-                                <local:LabeledInput LabelText="Avatar ID" x:Name="NewAvatarId"></local:LabeledInput>
-                                <local:LabeledInput LabelText="Avatar Name" x:Name="NewAvatarName"></local:LabeledInput>
-                                <Button Margin="5,5,5,5" Height="20" Click="Btn_addAvatar">Add</Button>
+                                <ListBox Margin="5,5,5,5"  Height="100" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="ConfigurationAvatarsListBox"/>
+                                <Button Margin="5,0,5,5" Height="20" Click="Btn_deleteAvatarFromConfiguration">Delete avatar from configuration</Button>
+                                <GroupBox Header="Add avatar to configuration">
+                                    <StackPanel>
+                                        <local:LabeledInput LabelWidth="150" LabelText="Avatar ID" x:Name="NewAvatarId"></local:LabeledInput>
+                                        <local:LabeledInput LabelWidth="150" LabelText="Avatar Name" x:Name="NewAvatarName"></local:LabeledInput>
+                                        <Button Margin="5,5,5,5" Height="20" Click="Btn_addAvatarToConfiguration">Add to configuration</Button>
+                                    </StackPanel>
+                                </GroupBox>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>

@@ -44,6 +44,14 @@ namespace VRC_OSC_ExternallyTrackedObject
         public static readonly DependencyProperty HighlightedProperty =
             DependencyProperty.Register("Highlighted", typeof(bool), typeof(LabeledInput), new PropertyMetadata(null));
 
+        public int LabelWidth
+        {
+            get { return (int)GetValue(LabelWidthProperty); }
+            set { SetValue(LabelWidthProperty, value); }
+        }
+        public static readonly DependencyProperty LabelWidthProperty =
+            DependencyProperty.Register("LabelWidth", typeof(int), typeof(LabeledInput), new PropertyMetadata(null));
+
         public LabeledInput()
         {
             InitializeComponent();

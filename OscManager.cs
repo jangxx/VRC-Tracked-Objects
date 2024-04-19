@@ -27,8 +27,8 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         private CancellationTokenSource CancelTokenSource = new CancellationTokenSource();
         private Thread? currentThread = null;
-        private Dictionary<string, AvatarConfig>? currentConfig = null;
-        private string? currentAvatar = null;
+        private Dictionary<string, AvatarParams>? currentConfig = null;
+        private string? currentAvatarId = null;
         private bool currentlyActive = false;
         private OscSender? oscSender;
         private OscReceiver? oscReceiver;
@@ -37,7 +37,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         public EventHandler? AvatarChanged;
         public EventHandler? ThreadCrashed;
 
-        public void Start(string inputAddress, int inputPort, string outputAddress, int outputPort, Dictionary<string, AvatarConfig> config)
+        public void Start(string inputAddress, int inputPort, string outputAddress, int outputPort, List<AvatarConfig> config)
         {
             if (oscSender == null)
             {
@@ -47,7 +47,16 @@ namespace VRC_OSC_ExternallyTrackedObject
             {
                 oscReceiver = new OscReceiver(System.Net.IPAddress.Parse(inputAddress), inputPort);
             }
-            currentConfig = config;
+            
+            // build dictionary from the config for faster lookups
+            currentConfig = new Dictionary<string, AvatarParams>();
+            foreach (var avatarConfig in config)
+            {
+                foreach (var avatarDefinition in avatarConfig.Avatars)
+                {
+                    currentConfig.Add(avatarDefinition.Id, avatarConfig.Parameters);
+                }
+            }
 
             //this.currentlyActive = true; // just for testing
 
@@ -101,42 +110,42 @@ namespace VRC_OSC_ExternallyTrackedObject
                         {
                             continue;
                         }
-                        
+
                         //Debug.WriteLine(packet.ToString());
 
                         if (msg.Address == AVATAR_CHANGE_ADDRESS && msg.Count > 0)
                         {
-                            currentAvatar = (string)msg[0];
+                            currentAvatarId = (string)msg[0];
 
                             {
-                                var args = new AvatarChangedArgs() { Id = currentAvatar };
+                                var args = new AvatarChangedArgs() { Id = currentAvatarId };
                                 var handler = AvatarChanged;
                                 handler?.Invoke(this, args);
                             }
 
                             this.currentlyActive = false;
 
-                            if (currentConfig.ContainsKey(currentAvatar))
+                            if (currentConfig.ContainsKey(currentAvatarId))
                             {
                                 // if the activate parameter is set to nothing we are always activated, otherwise we wait for the trigger
-                                this.currentlyActive = (currentConfig[currentAvatar].Parameters.Activate == "");
+                                this.currentlyActive = (currentConfig[currentAvatarId].Activate == "");
                             }
 
                             {
                                 var args = new TrackingActiveChangedArgs()
                                 {
                                     Active = this.currentlyActive,
-                                    AvatarKnown = currentConfig.ContainsKey(currentAvatar),
+                                    AvatarKnown = currentConfig.ContainsKey(currentAvatarId),
                                 };
                                 var handler = TrackingActiveChanged;
                                 handler?.Invoke(this, args);
                             }
-                        } 
-                        else if (currentAvatar != null
-                            && currentConfig.ContainsKey(currentAvatar)
-                            && msg.Address == currentConfig[currentAvatar].Parameters.Activate
-                            && msg.Count > 0)
-                        {
+                        }
+                        else if (currentAvatarId != null
+                            && currentConfig.ContainsKey(currentAvatarId)
+                            && msg.Address == currentConfig[currentAvatarId].Activate
+                            && msg.Count > 0
+                        ) {
                             bool activate = (bool)msg[0];
 
                             this.currentlyActive = activate;
@@ -199,17 +208,17 @@ namespace VRC_OSC_ExternallyTrackedObject
                 throw new Exception("SendValues was called without the OSC manager being set up");
             }
 
-            if ((!force && !this.currentlyActive) || currentAvatar == null || !this.currentConfig.ContainsKey(currentAvatar))
+            if ((!force && !this.currentlyActive) || currentAvatarId == null || !this.currentConfig.ContainsKey(currentAvatarId))
             {
                 return; // discard the message to not spam the game with useless messages
             }
 
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.PositionX, posX));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.PositionY, posY));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.PositionZ, posZ));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.RotationX, rotX));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.RotationY, rotY));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatar].Parameters.RotationZ, rotZ));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].PositionX, posX));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].PositionY, posY));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].PositionZ, posZ));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].RotationX, rotX));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].RotationY, rotY));
+            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].RotationZ, rotZ));
 
             //Debug.WriteLine("[OSC] Sending pos=(" + posX + ", " + posY + ", " + posZ + ") rot=(" + rotX + ", " + rotY + ", " + rotZ + ")");
         }
