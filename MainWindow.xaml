@@ -15,7 +15,7 @@
             </MenuItem>
         </Menu>
         <DockPanel>
-            <GroupBox Header="Global Settings" DockPanel.Dock="Top">
+            <GroupBox Header="Global Settings" DockPanel.Dock="Top" Margin="0,0,0,10">
                 <StackPanel>
                     <Border BorderThickness="5,5,5,5">
                         <CheckBox Content="Start tracking when launched from config file" ToolTip="Automatically start tracking when this config file is loaded as a launch parameter" x:Name="AutostartCheckbox"></CheckBox>
@@ -40,8 +40,30 @@
                     </Grid>
                 </StackPanel>
             </GroupBox>
-            <ComboBox DockPanel.Dock="Top" Margin="5,5,5,5" DisplayMemberPath="Name" SelectedValuePath="Id" x:Name="ConfigurationDropdown" SelectionChanged="ConfigurationDropdown_SelectionChanged" />
-            <TabControl>
+            <Grid DockPanel.Dock="Top" Margin="5,0,5,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"></ColumnDefinition>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="50"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*" />
+                </Grid.RowDefinitions>
+                
+                <Label VerticalContentAlignment="Center" FontWeight="Medium">
+                    Active configuration
+                </Label>
+                <ComboBox
+                    Grid.Column="1"
+                    DisplayMemberPath="DisplayName"
+                    x:Name="ConfigurationDropdown"
+                    SelectionChanged="ConfigurationDropdown_SelectionChanged" HorizontalContentAlignment="Left" HorizontalAlignment="Stretch" Margin="5,0,5,0"
+                />
+                <Button Grid.Column="2" Click="Btn_deleteConfiguration" x:Name="DeleteConfigurationButton">
+                    Delete
+                </Button>
+            </Grid>
+            <TabControl x:Name="MainTabs">
                 <TabItem Header="Tracking" x:Name="TrackingTab">
                     <StackPanel>
                         <GroupBox Header="Parameters">
@@ -82,25 +104,9 @@
                         <Button Margin="5,5,5,5" Height="25" x:Name="StartCalibrationButton" Click="StartCalibrationButton_Click">Start Calibration</Button>
                     </StackPanel>
                 </TabItem>
-                <TabItem Header="Configurations" x:Name="ConfigurationsTab">
+                <TabItem Header="Avatars" x:Name="AvatarsTab">
                     <StackPanel>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition></ColumnDefinition>
-                                <ColumnDefinition></ColumnDefinition>
-                            </Grid.ColumnDefinitions>
-                            <ListBox Grid.Column="0" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="ConfigurationListBox" HorizontalAlignment="Stretch" Margin="5,5,5,5"/>
-                            <StackPanel Grid.Column="1" Margin="5,5,5,5">
-                                <Button Margin="5,0,5,5" Height="20" Click="Btn_deleteConfiguration">Delete configuration</Button>
-                                <GroupBox Header="Add configuration">
-                                    <StackPanel>
-                                        <local:LabeledInput LabelWidth="50" LabelText="Name" x:Name="NewConfigurationName"></local:LabeledInput>
-                                        <Button Margin="5,5,5,5" Height="20" Click="Btn_addConfiguration">Add configuration</Button>
-                                    </StackPanel>
-                                </GroupBox>
-                            </StackPanel>
-                        </Grid>
-                        <GroupBox Header="Avatars in configuration">
+                        <GroupBox Header="Avatars in configuration" x:Name="AvatarsGroupBox">
                             <StackPanel>
                                 <ListBox Margin="5,5,5,5"  Height="100" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="ConfigurationAvatarsListBox"/>
                                 <Button Margin="5,0,5,5" Height="20" Click="Btn_deleteAvatarFromConfiguration">Delete avatar from configuration</Button>
@@ -111,6 +117,22 @@
                                         <Button Margin="5,5,5,5" Height="20" Click="Btn_addAvatarToConfiguration">Add to configuration</Button>
                                     </StackPanel>
                                 </GroupBox>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="Configurations" x:Name="ConfigurationsTab">
+                    <StackPanel>
+                        <GroupBox Header="Add configuration">
+                            <StackPanel>
+                                <local:LabeledInput LabelWidth="50" LabelText="Name" x:Name="NewConfigurationName"></local:LabeledInput>
+                                <Button Margin="5,5,5,5" Height="20" Click="Btn_addConfiguration">Add configuration</Button>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="Rename configuration" x:Name="RenameConfigurationGroupBox">
+                            <StackPanel>
+                                <local:LabeledInput LabelWidth="50" LabelText="Name" x:Name="RenameConfigurationName"></local:LabeledInput>
+                                <Button Margin="5,5,5,5" Height="20" Click="Btn_renameConfiguration">Rename configuration</Button>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
