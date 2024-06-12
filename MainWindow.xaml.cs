@@ -17,7 +17,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 {
 
 
-    internal class ConfigurationListItem
+    public class ConfigurationListItem
     {
         public AvatarConfig Config { get; set; }
 
@@ -32,7 +32,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         }
     }
 
-    internal class ConfigurationAvatarListItem
+    public class ConfigurationAvatarListItem
     {
         public string Name { get; set; }
         public string Id { get; set; }
@@ -49,7 +49,7 @@ namespace VRC_OSC_ExternallyTrackedObject
         }
     }
 
-    internal class DeviceListItem
+    public class DeviceListItem
     {
         public string Serial { get; set; }
         public bool Exists { get; set; }
@@ -96,10 +96,10 @@ namespace VRC_OSC_ExternallyTrackedObject
     public partial class MainWindow : Window
     {
         private Configuration CurrentConfig = new Configuration();
-        private ObservableCollection<ConfigurationListItem> ConfigurationList = new ObservableCollection<ConfigurationListItem>();
-        private ObservableCollection<ConfigurationAvatarListItem> ConfigurationAvatarList = new ObservableCollection<ConfigurationAvatarListItem>();
-        private ObservableCollection<DeviceListItem> ControllerList = new ObservableCollection<DeviceListItem>();
-        private ObservableCollection<DeviceListItem> TrackerList = new ObservableCollection<DeviceListItem>();
+        public ObservableCollection<ConfigurationListItem> ConfigurationList { get; } = new ObservableCollection<ConfigurationListItem>();
+        public ObservableCollection<ConfigurationAvatarListItem> ConfigurationAvatarList { get; } = new ObservableCollection<ConfigurationAvatarListItem>();
+        public ObservableCollection<DeviceListItem> ControllerList { get; } = new ObservableCollection<DeviceListItem>();
+        public ObservableCollection<DeviceListItem> TrackerList { get; } = new ObservableCollection<DeviceListItem>();
         //public MainWindowProperties DisplayProperties { get; set; }
         private OpenVRManager OpenVRManager = new OpenVRManager();
         private OscManager OscManager = new OscManager();
@@ -107,18 +107,10 @@ namespace VRC_OSC_ExternallyTrackedObject
         private Matrix<float>? CurrentInverseCalibrationMatrix = null;
         private Matrix<float>? CurrentInverseCalibrationMatrixNoScale = null;
 
-        public static float MAX_RELATIVE_DISTANCE = 1; // this is the max distance the tracker can be away from the controller. this is important for scaling the value since vrchat wants a value between -1 and 1
-
         public MainWindow()
         {
             InitializeComponent();
             this.DataContext = this;
-
-            ConfigurationDropdown.ItemsSource = ConfigurationList;
-            ConfigurationAvatarsListBox.ItemsSource = ConfigurationAvatarList;
-
-            ControllerDropdown.ItemsSource = ControllerList;
-            TrackerDropdown.ItemsSource = TrackerList;
 
             OSCInputAddress.InputText = CurrentConfig.OscInputAddress;
             OSCOutputAddress.InputText = CurrentConfig.OscOutputAddress;
@@ -147,6 +139,11 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public void ProcessStartupConfig()
         {
+            if (CurrentConfig.Configurations.Count > 0)
+            {
+                MainTabs.SelectedItem = TrackingTab;
+            }
+
             if (CurrentConfig.Autostart)
             {
                 StartTracking();
@@ -244,9 +241,9 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             var relativeRotation = MathUtils.extractRotationsFromMatrix(controllerToTrackerNS.Inverse().SubMatrix(0, 3, 0, 3));
 
-            if (Math.Abs(relativeTranslate[0]) >= MAX_RELATIVE_DISTANCE 
-                || Math.Abs(relativeTranslate[1]) >= MAX_RELATIVE_DISTANCE
-                || Math.Abs(relativeTranslate[2]) >= MAX_RELATIVE_DISTANCE)
+            if (Math.Abs(relativeTranslate[0]) >= Const.MaxRelativeDistance 
+                || Math.Abs(relativeTranslate[1]) >= Const.MaxRelativeDistance
+                || Math.Abs(relativeTranslate[2]) >= Const.MaxRelativeDistance)
             {
                 relativeTranslate[0] = 0;
                 relativeTranslate[1] = 0;
@@ -258,9 +255,9 @@ namespace VRC_OSC_ExternallyTrackedObject
             float rotationZ = relativeRotation[2] / (float)Math.PI;
 
             this.OscManager.SendValues(
-                -relativeTranslate[0] / MAX_RELATIVE_DISTANCE,
-                relativeTranslate[1] / MAX_RELATIVE_DISTANCE,
-                relativeTranslate[2] / MAX_RELATIVE_DISTANCE,
+                -relativeTranslate[0] / Const.MaxRelativeDistance,
+                relativeTranslate[1] / Const.MaxRelativeDistance,
+                relativeTranslate[2] / Const.MaxRelativeDistance,
                 rotationX,
                 rotationY,
                 rotationZ
@@ -319,6 +316,14 @@ namespace VRC_OSC_ExternallyTrackedObject
                         (float)calibration.TranslationX, (float)calibration.TranslationY, (float)calibration.TranslationZ,
                         1.0f, 1.0f, 1.0f
                     ).Inverse();
+
+                    for (int i = 0; i < ConfigurationList.Count; i++)
+                    {
+                        if (ConfigurationList[i].Config == config)
+                        {
+                            ConfigurationDropdown.SelectedIndex = i;
+                        }
+                    }
                 }
             }));
         }
@@ -339,6 +344,35 @@ namespace VRC_OSC_ExternallyTrackedObject
             CurrentConfig.OscInputAddress = OSCInputAddress.InputText;
             CurrentConfig.OscOutputAddress = OSCOutputAddress.InputText;
             CurrentConfig.Autostart = AutostartCheckbox.IsChecked == true;
+        }
+
+        private void Btn_saveDefaultConfig(object sender, RoutedEventArgs e)
+        {
+            if (ConfigurationDropdown.SelectedIndex != -1)
+            {
+                CopyInputValuesToConfig(CurrentConfig.Configurations[ConfigurationDropdown.SelectedIndex]);
+            }
+
+            CopySettingsToConfig();
+
+            // try to create config folder
+            try
+            {
+                var defaultConfigFilePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    Const.DefaultConfigPath
+                );
+
+                Debug.WriteLine("Saving config in " + defaultConfigFilePath);
+                Directory.CreateDirectory(defaultConfigFilePath);
+
+                string jsonString = JsonSerializer.Serialize(CurrentConfig, new JsonSerializerOptions() { WriteIndented = true });
+                File.WriteAllText(Path.Combine(defaultConfigFilePath, Const.DefaultConfigName), jsonString);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error while saving config: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Btn_saveConfig(object sender, RoutedEventArgs e)
@@ -440,6 +474,24 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
         }
 
+        private void Btn_openDefaultConfig(object sender, RoutedEventArgs e)
+        {
+            var messageBoxResult = MessageBox.Show("Are you sure you want to reload the config from the default location? This will overwrite all changes you have not saved.", "Confirm reload", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (messageBoxResult != MessageBoxResult.Yes) return;
+
+            var defaultConfigFilePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Const.DefaultConfigPath,
+                Const.DefaultConfigName
+            );
+
+            if (File.Exists(defaultConfigFilePath))
+            {
+                LoadConfig(defaultConfigFilePath);
+            }
+        }
+
         private void Btn_addConfiguration(object sender, RoutedEventArgs e)
         {
             if (NewConfigurationName.InputText == "" || NewConfigurationName.InputText == null)
@@ -491,7 +543,24 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         private void Btn_deleteAvatarFromConfiguration(object sender, RoutedEventArgs e)
         {
+            var deleteConfiguration = (ConfigurationAvatarListItem)ConfigurationAvatarsListBox.SelectedItem;
 
+            if (deleteConfiguration != null)
+            {
+                var currentConfig = CurrentConfig.Configurations[ConfigurationDropdown.SelectedIndex];
+
+                foreach (var avatarConfig in currentConfig.Avatars)
+                {
+                    if (avatarConfig.Id == deleteConfiguration.Id)
+                    {
+                        currentConfig.Avatars.Remove(avatarConfig);
+                        break;
+                    }
+                }
+
+                UpdateConfigurationList();
+                UpdateConfigurationAvatarList();
+            }
         }
 
         private void Btn_addAvatarToConfiguration(object sender, RoutedEventArgs e)
@@ -523,6 +592,40 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             NewAvatarId.InputText = "";
             NewAvatarName.InputText = "";
+        }
+
+        private void Btn_copyAvatarId(object sender, RoutedEventArgs e)
+        {
+            var selectedConfiguration = (ConfigurationAvatarListItem)ConfigurationAvatarsListBox.SelectedItem;
+
+            if (selectedConfiguration != null)
+            {
+                Clipboard.SetText(selectedConfiguration.Id);
+            }
+        }
+
+        private void Btn_moveAvatarToConfig(object sender, RoutedEventArgs e)
+        {
+            var selectedConfiguration = (ConfigurationAvatarListItem)ConfigurationAvatarsListBox.SelectedItem;
+            var targetConfig = (e.OriginalSource as MenuItem)?.CommandParameter as AvatarConfig;
+
+            if (targetConfig != null && selectedConfiguration != null)
+            {
+                var currentConfig = CurrentConfig.Configurations[ConfigurationDropdown.SelectedIndex];
+
+                foreach (var avatarConfig in currentConfig.Avatars)
+                {
+                    if (avatarConfig.Id == selectedConfiguration.Id)
+                    {
+                        targetConfig.Avatars.Add(avatarConfig);
+                        currentConfig.Avatars.Remove(avatarConfig);
+                        break;
+                    }
+                }
+
+                UpdateConfigurationList();
+                UpdateConfigurationAvatarList();
+            }
         }
 
         private void UpdateConfigurationList()
@@ -790,8 +893,11 @@ namespace VRC_OSC_ExternallyTrackedObject
             CurrentStatusLabel.Content = "inactive";
             StartCalibrationButton.IsEnabled = true;
             ConfigurationDropdown.IsEnabled = true;
+            DeleteConfigurationButton.IsEnabled = true;
             CalibrationTab.IsEnabled = true;
+            AvatarsTab.IsEnabled = true;
             ConfigurationsTab.IsEnabled = true;
+            FileMenu.IsEnabled = true;
         }
 
         private void StartTracking()
@@ -857,8 +963,11 @@ namespace VRC_OSC_ExternallyTrackedObject
             StartTrackingButton.Content = "Stop Tracking";
             StartCalibrationButton.IsEnabled = false;
             ConfigurationDropdown.IsEnabled = false;
+            DeleteConfigurationButton.IsEnabled = false;
             CalibrationTab.IsEnabled = false;
+            AvatarsTab.IsEnabled = false;
             ConfigurationsTab.IsEnabled = false;
+            FileMenu.IsEnabled = false;
 
             this.OscManager.Start(inputAddress, inputPort, outputAddress, outputPort, CurrentConfig.Configurations);
         }

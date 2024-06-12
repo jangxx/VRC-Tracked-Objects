@@ -166,6 +166,8 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
             catch(Exception e)
             {
+                Debug.WriteLine("ListenThread ended with exception: " + e.Message);
+
                 if (oscReceiver != null && oscReceiver.State == OscSocketState.Connected)
                 {
                     MessageBox.Show("OSC thread encountered an unexpected error: " + e.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);

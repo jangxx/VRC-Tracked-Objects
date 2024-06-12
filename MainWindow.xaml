@@ -9,9 +9,11 @@
         Title="VRC Tracked Objects" Width="450" ResizeMode="CanMinimize" SizeToContent="Height" WindowStartupLocation="CenterScreen">
     <DockPanel>
         <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File">
-                <MenuItem Header="_Open config file" Click="Btn_openConfig"></MenuItem>
-                <MenuItem Header="_Save config file" Click="Btn_saveConfig"></MenuItem>
+            <MenuItem Header="_File" x:Name="FileMenu">
+                <MenuItem Header="_Save config" Click="Btn_saveDefaultConfig"></MenuItem>
+                <MenuItem Header="_Reload config" Click="Btn_openDefaultConfig"></MenuItem>
+                <MenuItem Header="_Open config from file" Click="Btn_openConfig"></MenuItem>
+                <MenuItem Header="_Save config to file" Click="Btn_saveConfig"></MenuItem>
             </MenuItem>
         </Menu>
         <DockPanel>
@@ -34,9 +36,26 @@
                         </Grid.RowDefinitions>
                         <Button Grid.RowSpan="2" FontSize="9" VerticalAlignment="Center" Height="30" Click="DevicesRefresh_Click">Refresh</Button>
                         <Label  Grid.Column="1" Height="28" Content="Controller" HorizontalAlignment="Left"></Label>
-                        <ComboBox Grid.Column="2" Height="20" x:Name="ControllerDropdown" SelectionChanged="ControllerDropdown_SelectionChanged" DisplayMemberPath="DisplayName" SelectedValuePath="Serial" />
+                        <ComboBox
+                            Grid.Column="2"
+                            Height="20"
+                            x:Name="ControllerDropdown"
+                            SelectionChanged="ControllerDropdown_SelectionChanged"
+                            DisplayMemberPath="DisplayName"
+                            SelectedValuePath="Serial"
+                            ItemsSource="{Binding ControllerList}"
+                        />
                         <Label Grid.Row="1" Grid.Column="1" Height="28" Content="Tracked Device" HorizontalAlignment="Left"></Label>
-                        <ComboBox Grid.Row="1" Grid.Column="2" Height="20" x:Name="TrackerDropdown" SelectionChanged="TrackerDropdown_SelectionChanged" DisplayMemberPath="DisplayName" SelectedValuePath="Serial" />
+                        <ComboBox
+                            Grid.Row="1"
+                            Grid.Column="2"
+                            Height="20"
+                            x:Name="TrackerDropdown"
+                            SelectionChanged="TrackerDropdown_SelectionChanged"
+                            DisplayMemberPath="DisplayName"
+                            SelectedValuePath="Serial"
+                            ItemsSource="{Binding TrackerList}"
+                        />
                     </Grid>
                 </StackPanel>
             </GroupBox>
@@ -57,7 +76,11 @@
                     Grid.Column="1"
                     DisplayMemberPath="DisplayName"
                     x:Name="ConfigurationDropdown"
-                    SelectionChanged="ConfigurationDropdown_SelectionChanged" HorizontalContentAlignment="Left" HorizontalAlignment="Stretch" Margin="5,0,5,0"
+                    SelectionChanged="ConfigurationDropdown_SelectionChanged"
+                    HorizontalContentAlignment="Left"
+                    HorizontalAlignment="Stretch"
+                    Margin="5,0,5,0"
+                    ItemsSource="{Binding ConfigurationList}"
                 />
                 <Button Grid.Column="2" Click="Btn_deleteConfiguration" x:Name="DeleteConfigurationButton">
                     Delete
@@ -108,7 +131,29 @@
                     <StackPanel>
                         <GroupBox Header="Avatars in configuration" x:Name="AvatarsGroupBox">
                             <StackPanel>
-                                <ListBox Margin="5,5,5,5"  Height="100" DisplayMemberPath="DisplayName" SelectedValuePath="Id" x:Name="ConfigurationAvatarsListBox"/>
+                                <ListBox
+                                    Margin="5,5,5,5"
+                                    Height="100"
+                                    DisplayMemberPath="DisplayName"
+                                    SelectedValuePath="Id"
+                                    x:Name="ConfigurationAvatarsListBox"
+                                    ItemsSource="{Binding ConfigurationAvatarList}"
+                                 >
+                                    <ListBox.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Copy ID" Click="Btn_copyAvatarId"></MenuItem>
+                                            <MenuItem Header="Move to configuration" ItemsSource="{Binding ConfigurationList}">
+                                                <MenuItem.ItemContainerStyle>
+                                                    <Style TargetType="{x:Type MenuItem}">
+                                                        <Setter Property="MenuItem.Header" Value="{Binding DisplayName}" />
+                                                        <Setter Property="CommandParameter" Value="{Binding Config}" />
+                                                        <EventSetter Event="Click" Handler="Btn_moveAvatarToConfig" />
+                                                    </Style>
+                                                </MenuItem.ItemContainerStyle>
+                                            </MenuItem>
+                                        </ContextMenu>
+                                    </ListBox.ContextMenu>
+                                </ListBox>
                                 <Button Margin="5,0,5,5" Height="20" Click="Btn_deleteAvatarFromConfiguration">Delete avatar from configuration</Button>
                                 <GroupBox Header="Add avatar to configuration">
                                     <StackPanel>

@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace VRC_OSC_ExternallyTrackedObject
 {
-    internal class AvatarParams
+    public class AvatarParams
     {
         public string Activate { get; set; } = "/avatar/parameters/OSCTrackingEnabled";
         public string PositionX { get; set; } = "/avatar/parameters/OscTrackedPosX";
@@ -74,13 +74,13 @@ namespace VRC_OSC_ExternallyTrackedObject
         public Dictionary<string, AvatarConfigV0> Avatars { get; set; } = new Dictionary<string, AvatarConfigV0>();
     }
 
-    internal class AvatarConfigAvatar
+    public class AvatarConfigAvatar
     {
         public string Name { get; set; } = "";
         public string Id { get; set; } = "";
     }
 
-    internal class AvatarConfig
+    public class AvatarConfig
     {
         public string Name { get; set; } = "";
         public AvatarParams Parameters { get; set; } = new AvatarParams();
