@@ -5,8 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VRC_OSC_ExternallyTrackedObject"
         mc:Ignorable="d"
-        x:Name="MainWindowName" PreviewKeyDown="MainWindowName_KeyDown"
-        Title="VRC Tracked Objects" Width="450" ResizeMode="CanMinimize" SizeToContent="Height" WindowStartupLocation="CenterScreen">
+        x:Name="MainWindowName"
+        PreviewKeyDown="MainWindow_KeyDown"
+        Title="VRC Tracked Objects"
+        Width="450"
+        ResizeMode="CanMinimize"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        Closing="MainWindow_Closing"
+ >
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File" x:Name="FileMenu">
@@ -91,13 +98,13 @@
                     <StackPanel>
                         <GroupBox Header="Parameters">
                             <StackPanel>
-                                <local:LabeledInput LabelWidth="150" LabelText="Activate (bool) [optional]" x:Name="ParamTrigger"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Position X (float)" x:Name="ParamPosX"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Position Y (float)" x:Name="ParamPosY"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Position Z (float)" x:Name="ParamPosZ"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation X (float)" x:Name="ParamRotX"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Y (float)" x:Name="ParamRotY"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Z (float)" x:Name="ParamRotZ"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Activate (bool) [optional]" x:Name="ParamTrigger" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Position X (float)" x:Name="ParamPosX" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Position Y (float)" x:Name="ParamPosY" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Position Z (float)" x:Name="ParamPosZ" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation X (float)" x:Name="ParamRotX" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Y (float)" x:Name="ParamRotY" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Z (float)" x:Name="ParamRotZ" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
                             </StackPanel>
                         </GroupBox>
                         <Grid Height="30">

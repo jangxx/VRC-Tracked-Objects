@@ -52,6 +52,8 @@ namespace VRC_OSC_ExternallyTrackedObject
         public static readonly DependencyProperty LabelWidthProperty =
             DependencyProperty.Register("LabelWidth", typeof(int), typeof(LabeledInput), new PropertyMetadata(null));
 
+        public event TextChangedEventHandler? TextChanged;
+
         public LabeledInput()
         {
             InitializeComponent();
@@ -76,6 +78,11 @@ namespace VRC_OSC_ExternallyTrackedObject
             {
                 base.OnPropertyChanged(e);
             }
+        }
+
+        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            TextChanged?.Invoke(this, e);
         }
     }
 }

@@ -58,17 +58,15 @@ namespace VRC_OSC_ExternallyTrackedObject
         public Matrix<float>? Tracker { get; set; }
     }
 
-        internal class OpenVRManager
+    internal class OpenVRManager
     {
-        private CVRSystem? cVR;
-        private BlockingCollection<Key> InputKeyQueue = new BlockingCollection<Key>();
-        private CancellationTokenSource CancelTokenSource = new CancellationTokenSource();
-        private Thread? currentThread = null;
-        private AvatarCalibration? currentCalibration;
-        private bool calibrationThreadRunning = false;
-        private bool trackingThreadRunning = false;
-        private bool trackingEnabled = false;
-        private Dictionary<string, DeviceListEntry> Devices = new Dictionary<string, DeviceListEntry>();
+        private CVRSystem? _cVR;
+        private BlockingCollection<Key> _inputKeyQueue = new BlockingCollection<Key>();
+        private CancellationTokenSource _cancelTokenSource = new CancellationTokenSource();
+        private Thread? _currentThread = null;
+        private AvatarCalibration? _currentCalibration;
+        private bool _calibrationThreadRunning = false;
+        private Dictionary<string, DeviceListEntry> _devices = new Dictionary<string, DeviceListEntry>();
 
         public event EventHandler? CalibrationUpdate;
         public event EventHandler? TrackingData;
@@ -80,19 +78,19 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public bool IsCalibrationThreadRunning()
         {
-            return calibrationThreadRunning;
+            return _calibrationThreadRunning;
         }
 
         public void InjectKeyPress(Key key)
         {
-            InputKeyQueue.Add(key);
+            _inputKeyQueue.Add(key);
         }
 
         public void UpdateControllers()
         {
-            if (cVR == null) return;
+            if (_cVR == null) return;
 
-            Devices.Clear();
+            _devices.Clear();
 
             // this is not optimal, ideally we could put everything in the same array but I don't think c# slices actually support that?
             uint[] controllerIds = new uint[OpenVR.k_unMaxTrackedDeviceCount];
@@ -105,7 +103,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                 for (uint i = 0; i < noOfControllers; i++)
                 {
                     uint id = controllerIds[i];
-                    Devices.Add(
+                    _devices.Add(
                         GetStringTrackedDeviceProperty(id, ETrackedDeviceProperty.Prop_SerialNumber_String),
                         new DeviceListEntry { Handle = id, Type = ETrackedDeviceClass.Controller } 
                     );
@@ -113,7 +111,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                 for (uint i = 0; i < noOfTrackers; i++)
                 {
                     uint id = trackerIds[i];
-                    Devices.Add(
+                    _devices.Add(
                         GetStringTrackedDeviceProperty(id, ETrackedDeviceProperty.Prop_SerialNumber_String),
                         new DeviceListEntry { Handle = id, Type = ETrackedDeviceClass.GenericTracker }
                     );
@@ -127,17 +125,17 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public List<string> GetControllers()
         {
-            return Devices.Keys.Where(id => Devices[id].Type == ETrackedDeviceClass.Controller).ToList();
+            return _devices.Keys.Where(id => _devices[id].Type == ETrackedDeviceClass.Controller).ToList();
         }
 
         public List<string> GetTrackers()
         {
-            return Devices.Keys.Where(id => Devices[id].Type == ETrackedDeviceClass.GenericTracker).ToList();
+            return _devices.Keys.Where(id => _devices[id].Type == ETrackedDeviceClass.GenericTracker).ToList();
         }
 
         public List<string> GetAllDevices()
         {
-            return Devices.Keys.ToList();
+            return _devices.Keys.ToList();
         }
 
         private string GetStringTrackedDeviceProperty(uint deviceIndex, ETrackedDeviceProperty prop)
@@ -167,13 +165,13 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public bool InitBackground()
         {
-            if (cVR != null)
+            if (_cVR != null)
             {
                 Shutdown();
             }
 
             EVRInitError error = EVRInitError.None;
-            cVR = OpenVR.Init(ref error, EVRApplicationType.VRApplication_Background);
+            _cVR = OpenVR.Init(ref error, EVRApplicationType.VRApplication_Background);
 
             if (error != EVRInitError.None)
             {
@@ -188,13 +186,13 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public bool InitOverlay()
         {
-            if (cVR != null)
+            if (_cVR != null)
             {
                 Shutdown();
             }
 
             EVRInitError error = EVRInitError.None;
-            cVR = OpenVR.Init(ref error, EVRApplicationType.VRApplication_Overlay);
+            _cVR = OpenVR.Init(ref error, EVRApplicationType.VRApplication_Overlay);
 
             if (error != EVRInitError.None)
             {
@@ -209,45 +207,38 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public void Shutdown()
         {
-            if (cVR != null)
+            if (_cVR != null)
             {
                 OpenVR.Shutdown();
-                cVR = null;
+                _cVR = null;
             }
-        }
-
-        public void SetTrackingEnabled(bool enabled)
-        {
-            this.trackingEnabled = enabled;
         }
 
         public bool StartTrackingThread(string controllerSn, string trackerSn)
         {
-            if (currentThread != null) return false;
+            if (_currentThread != null) return false;
 
-            if (!Devices.ContainsKey(controllerSn))
+            if (!_devices.ContainsKey(controllerSn))
             {
                 MessageBox.Show("The controller " + controllerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
-            if (!Devices.ContainsKey(trackerSn))
+            if (!_devices.ContainsKey(trackerSn))
             {
                 MessageBox.Show("The tracker " + trackerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
 
-            uint controllerHandle = Devices[controllerSn].Handle;
-            uint trackerHandle = Devices[trackerSn].Handle;
+            uint controllerHandle = _devices[controllerSn].Handle;
+            uint trackerHandle = _devices[trackerSn].Handle;
 
-            this.CancelTokenSource = new CancellationTokenSource();
+            this._cancelTokenSource = new CancellationTokenSource();
 
-            this.currentThread = new Thread(() => TrackingThreadMain(controllerHandle, trackerHandle));
-            this.currentThread.Name = "TrackingThread";
-            this.currentThread.IsBackground = true;
-            this.currentThread.Start();
-            this.trackingThreadRunning = true;
-            this.trackingEnabled = false;
+            this._currentThread = new Thread(() => TrackingThreadMain(controllerHandle, trackerHandle));
+            this._currentThread.Name = "TrackingThread";
+            this._currentThread.IsBackground = true;
+            this._currentThread.Start();
 
             return true;
         }
@@ -261,7 +252,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             while (true)
             {
-                if (CancelTokenSource.Token.WaitHandle.WaitOne(10))
+                if (_cancelTokenSource.Token.WaitHandle.WaitOne(10))
                 {
                     return; // cancellation was requested
                 }
@@ -282,30 +273,30 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public void StartCalibrationThread(string controllerSn, AvatarCalibration avatarCalibration)
         {
-            if (currentThread != null) return;
+            if (_currentThread != null) return;
 
-            if (!Devices.ContainsKey(controllerSn))
+            if (!_devices.ContainsKey(controllerSn))
             {
                 MessageBox.Show("The controller " + controllerSn + " does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            uint controllerHandle = Devices[controllerSn].Handle;
+            uint controllerHandle = _devices[controllerSn].Handle;
 
-            this.currentCalibration = avatarCalibration;
+            this._currentCalibration = avatarCalibration;
 
-            this.CancelTokenSource = new CancellationTokenSource();
+            this._cancelTokenSource = new CancellationTokenSource();
 
-            this.currentThread = new Thread(() => CalibrationThreadMain(controllerHandle));
-            this.currentThread.Name = "CalibrationThread";
-            this.currentThread.IsBackground = true;
-            this.currentThread.Start();
-            this.calibrationThreadRunning = true;
+            this._currentThread = new Thread(() => CalibrationThreadMain(controllerHandle));
+            this._currentThread.Name = "CalibrationThread";
+            this._currentThread.IsBackground = true;
+            this._currentThread.Start();
+            this._calibrationThreadRunning = true;
         }
 
         public void CalibrationThreadMain(uint controllerHandle)
         {
-            if (this.currentCalibration == null) return;
+            if (this._currentCalibration == null) return;
 
             ulong OverlayXHandle = OpenVR.k_ulOverlayHandleInvalid;
             ulong OverlayYHandle = OpenVR.k_ulOverlayHandleInvalid;
@@ -356,15 +347,15 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                 // do one initial update to show the current calibration
                 MathUtils.fillTransformMatrix44(ref currentTransformMatrix,
-                    (float)currentCalibration.RotationX,
-                    (float)currentCalibration.RotationY,
-                    (float)currentCalibration.RotationZ,
-                    (float)currentCalibration.TranslationX,
-                    (float)currentCalibration.TranslationY,
-                    (float)currentCalibration.TranslationZ,
-                    (float)currentCalibration.Scale,
-                    (float)currentCalibration.Scale,
-                    (float)currentCalibration.Scale
+                    (float)_currentCalibration.RotationX,
+                    (float)_currentCalibration.RotationY,
+                    (float)_currentCalibration.RotationZ,
+                    (float)_currentCalibration.TranslationX,
+                    (float)_currentCalibration.TranslationY,
+                    (float)_currentCalibration.TranslationZ,
+                    (float)_currentCalibration.Scale,
+                    (float)_currentCalibration.Scale,
+                    (float)_currentCalibration.Scale
                 );
 
                 currentTransformMatrix.Multiply(OverlayXMat, m);
@@ -378,7 +369,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                 OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(OverlayYHandle, controllerHandle, ref OverlayYMatOVR);
                 OpenVR.Overlay.SetOverlayTransformTrackedDeviceRelative(OverlayZHandle, controllerHandle, ref OverlayZMatOVR);
 
-                while (InputKeyQueue.TryTake(out nextKey, -1, CancelTokenSource.Token))
+                while (_inputKeyQueue.TryTake(out nextKey, -1, _cancelTokenSource.Token))
                 {
                     switch(nextKey)
                     {
@@ -408,8 +399,8 @@ namespace VRC_OSC_ExternallyTrackedObject
                         case Key.Up:
                             {
                                 transformMatrixInDirection(ref currentTransformMatrix, currentCalibrationField, 1);
-                                currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
-                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, CalibrationValues = currentCalibration };
+                                _currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
+                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, CalibrationValues = _currentCalibration };
                                 var handler = CalibrationUpdate;
                                 handler?.Invoke(this, args);
                                 break;
@@ -419,8 +410,8 @@ namespace VRC_OSC_ExternallyTrackedObject
                         case Key.Down:
                             {
                                 transformMatrixInDirection(ref currentTransformMatrix, currentCalibrationField, -1);
-                                currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
-                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, CalibrationValues = currentCalibration };
+                                _currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
+                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, CalibrationValues = _currentCalibration };
                                 var handler = CalibrationUpdate;
                                 handler?.Invoke(this, args);
                                 break;
@@ -541,17 +532,17 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public bool IsAnyThreadRunning()
         {
-            return this.currentThread != null;
+            return this._currentThread != null;
         }
 
         public void StopThread()
         {
-            if (currentThread == null) return;
+            if (_currentThread == null) return;
 
-            CancelTokenSource.Cancel();
-            currentThread.Join();
-            currentThread = null;
-            this.calibrationThreadRunning = false;
+            _cancelTokenSource.Cancel();
+            _currentThread.Join();
+            _currentThread = null;
+            this._calibrationThreadRunning = false;
         }
     }
 }

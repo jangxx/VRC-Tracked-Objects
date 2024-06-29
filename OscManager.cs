@@ -12,26 +12,36 @@ namespace VRC_OSC_ExternallyTrackedObject
 {
     public class TrackingActiveChangedArgs : EventArgs
     {
-        public bool Active { get; set; }
-        public bool AvatarKnown { get; set; }
+        public TrackingActiveChangedArgs(bool active, bool avatarKnown)
+        {
+            Active = active;
+            AvatarKnown = avatarKnown;
+        }
+
+        public bool Active { get; }
+        public bool AvatarKnown { get; }
     }
 
     public class AvatarChangedArgs : EventArgs
     {
-        public string Id { get; set; } = "";
+        public AvatarChangedArgs(string id)
+        {
+            Id = id;
+        }
+
+        public string Id { get; }
     }
 
     internal class OscManager
     {
         private static string AVATAR_CHANGE_ADDRESS = "/avatar/change";
 
-        private CancellationTokenSource CancelTokenSource = new CancellationTokenSource();
-        private Thread? currentThread = null;
-        private Dictionary<string, AvatarParams>? currentConfig = null;
-        private string? currentAvatarId = null;
-        private bool currentlyActive = false;
-        private OscSender? oscSender;
-        private OscReceiver? oscReceiver;
+        private Thread? _currentThread = null;
+        private Dictionary<string, AvatarParams>? _currentConfig = null;
+        private string? _currentAvatarId = null;
+        private bool _currentlyActive = false;
+        private OscSender? _oscSender;
+        private OscReceiver? _oscReceiver;
 
         public EventHandler? TrackingActiveChanged;
         public EventHandler? AvatarChanged;
@@ -39,59 +49,52 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public void Start(string inputAddress, int inputPort, string outputAddress, int outputPort, List<AvatarConfig> config)
         {
-            if (oscSender == null)
+            if (_oscSender == null)
             {
-                oscSender = new OscSender(System.Net.IPAddress.Parse(outputAddress), 0, outputPort);
+                _oscSender = new OscSender(System.Net.IPAddress.Parse(outputAddress), 0, outputPort);
             }
-            if (oscReceiver == null)
+            if (_oscReceiver == null)
             {
-                oscReceiver = new OscReceiver(System.Net.IPAddress.Parse(inputAddress), inputPort);
+                _oscReceiver = new OscReceiver(System.Net.IPAddress.Parse(inputAddress), inputPort);
             }
             
             // build dictionary from the config for faster lookups
-            currentConfig = new Dictionary<string, AvatarParams>();
+            _currentConfig = new Dictionary<string, AvatarParams>();
             foreach (var avatarConfig in config)
             {
                 foreach (var avatarDefinition in avatarConfig.Avatars)
                 {
-                    currentConfig.Add(avatarDefinition.Id, avatarConfig.Parameters);
+                    _currentConfig.Add(avatarDefinition.Id, avatarConfig.Parameters);
                 }
             }
 
-            //this.currentlyActive = true; // just for testing
+            _currentAvatarId = null;
+            _currentlyActive = false;
 
-            oscReceiver.Connect();
-            oscSender.Connect();
+            _oscReceiver.Connect();
+            _oscSender.Connect();
 
-            currentThread = new Thread(() => ListenThread());
-            currentThread.Name = "OscThread";
-            currentThread.IsBackground = true;
-            currentThread.Start();
+            _currentThread = new Thread(() => ListenThread());
+            _currentThread.Name = "OscThread";
+            _currentThread.IsBackground = true;
+            _currentThread.Start();
 
             Debug.WriteLine("OSC thread started");
         }
 
         public void ListenThread()
         {
-            if (oscReceiver == null || currentConfig == null) throw new Exception("ListenThread was set up incorrectly");
+            if (_oscReceiver == null || _currentConfig == null) throw new Exception("ListenThread was set up incorrectly");
 
             try
             {
-                {
-                    var args = new TrackingActiveChangedArgs()
-                    {
-                        Active = false,
-                        AvatarKnown = false,
-                    };
-                    var handler = TrackingActiveChanged;
-                    handler?.Invoke(this, args);
-                }
+                TrackingActiveChanged?.Invoke(this, new TrackingActiveChangedArgs(false, false));
 
-                while (oscReceiver.State != OscSocketState.Closed)
+                while (_oscReceiver.State != OscSocketState.Closed)
                 {
-                    if (oscReceiver.State == OscSocketState.Connected)
+                    if (_oscReceiver.State == OscSocketState.Connected)
                     {
-                        OscPacket packet = oscReceiver.Receive();
+                        OscPacket packet = _oscReceiver.Receive();
 
                         string? msgStr = packet.ToString();
 
@@ -115,48 +118,34 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                         if (msg.Address == AVATAR_CHANGE_ADDRESS && msg.Count > 0)
                         {
-                            currentAvatarId = (string)msg[0];
+                            _currentAvatarId = (string)msg[0];
 
-                            {
-                                var args = new AvatarChangedArgs() { Id = currentAvatarId };
-                                var handler = AvatarChanged;
-                                handler?.Invoke(this, args);
-                            }
+                            AvatarChanged?.Invoke(this, new AvatarChangedArgs(_currentAvatarId));
 
-                            this.currentlyActive = false;
+                            _currentlyActive = false;
 
-                            if (currentConfig.ContainsKey(currentAvatarId))
+                            if (_currentConfig.ContainsKey(_currentAvatarId))
                             {
                                 // if the activate parameter is set to nothing we are always activated, otherwise we wait for the trigger
-                                this.currentlyActive = (currentConfig[currentAvatarId].Activate == "");
+                                _currentlyActive = (_currentConfig[_currentAvatarId].Activate == "");
                             }
 
-                            {
-                                var args = new TrackingActiveChangedArgs()
-                                {
-                                    Active = this.currentlyActive,
-                                    AvatarKnown = currentConfig.ContainsKey(currentAvatarId),
-                                };
-                                var handler = TrackingActiveChanged;
-                                handler?.Invoke(this, args);
-                            }
+                            TrackingActiveChanged?.Invoke(this, new TrackingActiveChangedArgs(_currentlyActive, _currentConfig.ContainsKey(_currentAvatarId)));
                         }
-                        else if (currentAvatarId != null
-                            && currentConfig.ContainsKey(currentAvatarId)
-                            && msg.Address == currentConfig[currentAvatarId].Activate
+                        else if (_currentAvatarId != null
+                            && _currentConfig.ContainsKey(_currentAvatarId)
+                            && msg.Address == _currentConfig[_currentAvatarId].Activate
                             && msg.Count > 0
                         ) {
                             bool activate = (bool)msg[0];
 
-                            this.currentlyActive = activate;
+                            _currentlyActive = activate;                            
 
-                            var args = new TrackingActiveChangedArgs() { Active = activate, AvatarKnown = true };
-                            var handler = TrackingActiveChanged;
-                            handler?.Invoke(this, args);
+                            TrackingActiveChanged?.Invoke(this, new TrackingActiveChangedArgs(activate, true));
 
-                            if (!this.currentlyActive)
+                            if (!_currentlyActive)
                             {
-                                SendValues(0, 0, 0, 0, 0, 0, true); // reset all values to 0 so that we can reuse those parameters
+                                SendValues(0, 0, 0, 0, 0, 0, true); // reset all values to 0 so that we can reuse those parameters for other avatars
                             }
                         }
 
@@ -168,7 +157,7 @@ namespace VRC_OSC_ExternallyTrackedObject
             {
                 Debug.WriteLine("ListenThread ended with exception: " + e.Message);
 
-                if (oscReceiver != null && oscReceiver.State == OscSocketState.Connected)
+                if (_oscReceiver != null && _oscReceiver.State == OscSocketState.Connected)
                 {
                     MessageBox.Show("OSC thread encountered an unexpected error: " + e.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     
@@ -180,47 +169,47 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public void Stop()
         {
-            if (oscReceiver != null)
+            if (_oscReceiver != null)
             {
-                oscReceiver.Close();
+                _oscReceiver.Close();
                 //oscReceiver.Dispose();
             }
-            if (oscSender != null)
+            if (_oscSender != null)
             {
-                oscSender.Close();
+                _oscSender.Close();
                 //oscSender.Dispose();
             }
 
             //oscReceiver = null;
             //oscSender = null;
 
-            currentConfig = null;
+            _currentConfig = null;
 
-            if (currentThread != null)
+            if (_currentThread != null)
             {
-                currentThread.Join();
+                _currentThread.Join();
             }
-            currentThread = null;
+            _currentThread = null;
         }
 
         public void SendValues(float posX, float posY, float posZ, float rotX, float rotY, float rotZ, bool force = false)
         {
-            if (this.oscSender == null || this.oscSender.State != OscSocketState.Connected || this.currentConfig == null)
+            if (_oscSender == null || _oscSender.State != OscSocketState.Connected || _currentConfig == null)
             {
                 throw new Exception("SendValues was called without the OSC manager being set up");
             }
 
-            if ((!force && !this.currentlyActive) || currentAvatarId == null || !this.currentConfig.ContainsKey(currentAvatarId))
+            if ((!force && !_currentlyActive) || _currentAvatarId == null || !_currentConfig.ContainsKey(_currentAvatarId))
             {
                 return; // discard the message to not spam the game with useless messages
             }
 
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].PositionX, posX));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].PositionY, posY));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].PositionZ, posZ));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].RotationX, rotX));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].RotationY, rotY));
-            oscSender.Send(new OscMessage(this.currentConfig[currentAvatarId].RotationZ, rotZ));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].PositionX, posX));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].PositionY, posY));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].PositionZ, posZ));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].RotationX, rotX));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].RotationY, rotY));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].RotationZ, rotZ));
 
             //Debug.WriteLine("[OSC] Sending pos=(" + posX + ", " + posY + ", " + posZ + ") rot=(" + rotX + ", " + rotY + ", " + rotZ + ")");
         }
