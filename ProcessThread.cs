@@ -12,14 +12,14 @@ namespace VRC_OSC_ExternallyTrackedObject
 {
     internal class ProcessQueueData
     {
-        public ProcessQueueData(Matrix<float> controller, Matrix<float> tracker)
+        public ProcessQueueData(Matrix<double> controller, Matrix<double> tracker)
         {
             Controller = controller;
             Tracker = tracker;
         }
 
-        public Matrix<float> Controller { get; }
-        public Matrix<float> Tracker { get; }
+        public Matrix<double> Controller { get; }
+        public Matrix<double> Tracker { get; }
 
     }
 
@@ -42,8 +42,8 @@ namespace VRC_OSC_ExternallyTrackedObject
         private object _lock = new();
         private BlockingCollection<ProcessQueueData> _stack = new BlockingCollection<ProcessQueueData>(new ConcurrentStack<ProcessQueueData>());
 
-        private Matrix<float>? _currentInverseCalibrationMatrix = null;
-        private Matrix<float>? _currentInverseCalibrationMatrixNoScale = null;
+        private Matrix<double>? _currentInverseCalibrationMatrix = null;
+        private Matrix<double>? _currentInverseCalibrationMatrixNoScale = null;
         private List<AvatarConfig> _configurations;
 
         public EventHandler? AvatarConfigChanged;
@@ -89,7 +89,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                         continue;
                     }
 
-                    Matrix<float> controllerToTracker, controllerToTrackerNS;
+                    Matrix<double> controllerToTracker, controllerToTrackerNS;
 
                     lock (_lock)
                     {
@@ -113,9 +113,9 @@ namespace VRC_OSC_ExternallyTrackedObject
                         relativeTranslate[2] = 1;
                     }
 
-                    float rotationX = -relativeRotation[0] / (float)Math.PI;
-                    float rotationY = relativeRotation[1] / (float)Math.PI;
-                    float rotationZ = relativeRotation[2] / (float)Math.PI;
+                    double rotationX = -relativeRotation[0] / Math.PI;
+                    double rotationY = relativeRotation[1] / Math.PI;
+                    double rotationZ = relativeRotation[2] / Math.PI;
 
                     _oscManager.SendValues(
                         -relativeTranslate[0] / Const.MaxRelativeDistance,
@@ -161,14 +161,14 @@ namespace VRC_OSC_ExternallyTrackedObject
                     var calibration = config.Calibration;
 
                     _currentInverseCalibrationMatrix = MathUtils.createTransformMatrix44(
-                        (float)calibration.RotationX, (float)calibration.RotationY, (float)calibration.RotationZ,
-                        (float)calibration.TranslationX, (float)calibration.TranslationY, (float)calibration.TranslationZ,
-                        (float)calibration.Scale, (float)calibration.Scale, (float)calibration.Scale
+                        calibration.RotationX, calibration.RotationY, calibration.RotationZ,
+                        calibration.TranslationX, calibration.TranslationY, calibration.TranslationZ,
+                        calibration.Scale, calibration.Scale, calibration.Scale
                     ).Inverse();
 
                     _currentInverseCalibrationMatrixNoScale = MathUtils.createTransformMatrix44(
-                        (float)calibration.RotationX, (float)calibration.RotationY, (float)calibration.RotationZ,
-                        (float)calibration.TranslationX, (float)calibration.TranslationY, (float)calibration.TranslationZ,
+                        calibration.RotationX, calibration.RotationY, calibration.RotationZ,
+                        calibration.TranslationX, calibration.TranslationY, calibration.TranslationZ,
                         1.0f, 1.0f, 1.0f
                     ).Inverse();
                 }

@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Valve.VR;
 using MathNet.Numerics;
 using MathNet.Spatial.Euclidean;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace VRC_OSC_ExternallyTrackedObject
 {
@@ -14,25 +16,25 @@ namespace VRC_OSC_ExternallyTrackedObject
 
     internal class MathUtils
     {
-        public static void CopyMat34ToOVR(ref Matrix<float> mat, ref HmdMatrix34_t ovrMat)
+        public static void CopyMat34ToOVR(ref Matrix<double> mat, ref HmdMatrix34_t ovrMat)
         {
-            ovrMat.m0 = mat[0, 0];
-            ovrMat.m1 = mat[0, 1];
-            ovrMat.m2 = mat[0, 2];
-            ovrMat.m3 = mat[0, 3];
-            ovrMat.m4 = mat[1, 0];
-            ovrMat.m5 = mat[1, 1];
-            ovrMat.m6 = mat[1, 2];
-            ovrMat.m7 = mat[1, 3];
-            ovrMat.m8 = mat[2, 0];
-            ovrMat.m9 = mat[2, 1];
-            ovrMat.m10 = mat[2, 2];
-            ovrMat.m11 = mat[2, 3];
+            ovrMat.m0 = (float)mat[0, 0];
+            ovrMat.m1 = (float)mat[0, 1];
+            ovrMat.m2 = (float)mat[0, 2];
+            ovrMat.m3 = (float)mat[0, 3];
+            ovrMat.m4 = (float)mat[1, 0];
+            ovrMat.m5 = (float)mat[1, 1];
+            ovrMat.m6 = (float)mat[1, 2];
+            ovrMat.m7 = (float)mat[1, 3];
+            ovrMat.m8 = (float)mat[2, 0];
+            ovrMat.m9 = (float)mat[2, 1];
+            ovrMat.m10 = (float)mat[2, 2];
+            ovrMat.m11 = (float)mat[2, 3];
         }
 
-        public static Matrix<float> OVR34ToMat44(ref HmdMatrix34_t ovrMat)
+        public static Matrix<double> OVR34ToMat44(ref HmdMatrix34_t ovrMat)
         {
-            return Matrix<float>.Build.DenseOfColumnMajor(4, 4, new float[] {
+            return Matrix<double>.Build.DenseOfColumnMajor(4, 4, new double[] {
                 ovrMat.m0, ovrMat.m4, ovrMat.m8, 0,
                 ovrMat.m1, ovrMat.m5, ovrMat.m9, 0,
                 ovrMat.m2, ovrMat.m6, ovrMat.m10, 0,
@@ -40,45 +42,58 @@ namespace VRC_OSC_ExternallyTrackedObject
             });
         }
 
-        public static float Cosf(float input)
+        public static Matrix<double> createTransformMatrix44(double rotX, double rotY, double rotZ, double translateX, double translateY, double translateZ, double scaleX, double scaleY, double scaleZ)
         {
-            return (float)Cos(input);
-        }
+            // copied from https://github.com/mrdoob/three.js/blob/dev/src/math/Matrix4.js
 
-        public static float Sinf(float input)
-        {
-            return (float)Sin(input);
-        }
+            double a = Cos(rotX);
+            double b = Sin(rotX);
+            double c = Cos(rotY);
+            double d = Sin(rotY);
+            double e = Cos(rotZ);
+            double f = Sin(rotZ);
 
-        public static Matrix<float> createTransformMatrix44(float rotX, float rotY, float rotZ, float translateX, float translateY, float translateZ, float scaleX, float scaleY, float scaleZ)
-        {
+            //double[,] data =
+            //{
+            //    { ca*cb * scaleX, (ca*sb*sg - cg*sa) * scaleY, (sa*sg + ca*cg*sb) * scaleZ,  translateX },
+            //    { cb*sa * scaleX, (ca*cg + sa*sb*sg) * scaleY, (cg*sa*sb - ca*sg) * scaleZ,  translateY },
+            //    { -sb * scaleX,   cb*sg * scaleY,              cb*cg * scaleZ,               translateZ },
+            //    { 0,  0,  0,  1 }
+            //};
 
-            float[,] data =
+            double[,] data =
             {
-                { Cosf(rotY)*Cosf(rotZ) * scaleX,   (Sinf(rotX) * Sinf(rotY) * Cosf(rotZ) - Cosf(rotX) * Sinf(rotZ)) * scaleY,  (Cosf(rotX) * Sinf(rotY) * Cosf(rotZ) + Sinf(rotX) * Sinf(rotZ)) * scaleZ,  translateX },
-                { Cosf(rotY)*Sinf(rotZ) * scaleX,   (Sinf(rotX) * Sinf(rotY) * Sinf(rotZ) + Cosf(rotX) * Cosf(rotZ)) * scaleY,  (Cosf(rotX) * Sinf(rotY) * Sinf(rotZ) - Sinf(rotX) * Cosf(rotZ)) * scaleZ,  translateY },
-                { -Sinf(rotY) * scaleX, 			Sinf(rotX) * Cosf(rotY) * scaleY,										    Cosf(rotX) * Cosf(rotY) * scaleZ,											translateZ },
-                { 0,                                0,                                                                          0,                                                                          1 }
+                { c*e * scaleX,           -c*f * scaleY,         d * scaleZ,     translateX },
+                { (a*f + b*e*d) * scaleX, (a*e - b*f*d) * scaleY, -b*c * scaleZ, translateY },
+                { (b*f - a*e*d) * scaleX, (b*e + a*f*d) * scaleY, a*c * scaleZ,  translateZ },
+                { 0,  0,  0,  1 },
             };
 
-            return Matrix<float>.Build.DenseOfArray(data);
+            return Matrix<double>.Build.DenseOfArray(data);
         }
 
-        public static void fillTransformMatrix44(ref Matrix<float> mat, float rotX, float rotY, float rotZ, float translateX, float translateY, float translateZ, float scaleX, float scaleY, float scaleZ)
+        public static void fillTransformMatrix44(ref Matrix<double> mat, double rotX, double rotY, double rotZ, double translateX, double translateY, double translateZ, double scaleX, double scaleY, double scaleZ)
         {
-            mat[0, 0] = Cosf(rotY) * Cosf(rotZ) * scaleX;
-            mat[0, 1] = (Sinf(rotX) * Sinf(rotY) * Cosf(rotZ) - Cosf(rotX) * Sinf(rotZ)) * scaleY;
-            mat[0, 2] = (Cosf(rotX) * Sinf(rotY) * Cosf(rotZ) + Sinf(rotX) * Sinf(rotZ)) * scaleZ;
+            double a = Cos(rotX);
+            double b = Sin(rotX);
+            double c = Cos(rotY);
+            double d = Sin(rotY);
+            double e = Cos(rotZ);
+            double f = Sin(rotZ);
+
+            mat[0, 0] = c * e * scaleX;
+            mat[0, 1] = -c * f * scaleY;
+            mat[0, 2] = d * scaleZ;
             mat[0, 3] = translateX;
 
-            mat[1, 0] = Cosf(rotY) * Sinf(rotZ) * scaleX;
-            mat[1, 1] = (Sinf(rotX) * Sinf(rotY) * Sinf(rotZ) + Cosf(rotX) * Cosf(rotZ)) * scaleY;
-            mat[1, 2] = (Cosf(rotX) * Sinf(rotY) * Sinf(rotZ) - Sinf(rotX) * Cosf(rotZ)) * scaleZ;
+            mat[1, 0] = (a * f + b * e * d) * scaleX;
+            mat[1, 1] = (a * e - b * f * d) * scaleY;
+            mat[1, 2] = -b * c * scaleZ;
             mat[1, 3] = translateY;
 
-            mat[2, 0] = -Sinf(rotY) * scaleX;
-            mat[2, 1] = Sinf(rotX) * Cosf(rotY) * scaleY;
-            mat[2, 2] = Cosf(rotX) * Cosf(rotY) * scaleZ;
+            mat[2, 0] = (b * f - a * e * d) * scaleX;
+            mat[2, 1] = (b * e + a * f * d) * scaleY;
+            mat[2, 2] = a * c * scaleZ;
             mat[2, 3] = translateZ;
 
             mat[3, 0] = 0;
@@ -87,45 +102,64 @@ namespace VRC_OSC_ExternallyTrackedObject
             mat[3, 3] = 1;
         }
 
-        public static Vector<float> extractRotationsFromMatrix(Matrix<float> mat33)
+        public static Vector<double> extractRotationsFromMatrix(Matrix<double> mat33)
         {
-            // turn rotation matrix into quaternion first
-            var quat = Mat33toQuat(mat33);
+            // create XYZ Euler angles
+            // copied from https://github.com/mrdoob/three.js/blob/dev/src/math/Euler.js
+            // and extended to properly deal with scaled matrices
 
-            // turn quaternion into euler angles
-            var euler = quat.ToEulerAngles();
+            double scaleX = mat33.Column(0).L2Norm();
+            double scaleY = mat33.Column(1).L2Norm();
+            double scaleZ = mat33.Column(2).L2Norm();
+
+            double m13 = mat33[0, 2] / scaleZ;
+            double m23 = mat33[1, 2] / scaleZ;
+            double m33 = mat33[2, 2] / scaleZ;
+            double m12 = mat33[0, 1] / scaleY;
+            double m11 = mat33[0, 0] / scaleX;
+            double m32 = mat33[2, 1] / scaleY;
+            double m22 = mat33[1, 1] / scaleY;
+
+            double y = Math.Asin(Math.Clamp(m13, -1.0, 1.0));
+            double x, z;
+
+            if (Math.Abs(m13) < 0.9999999)
+            {
+                x = Math.Atan2(-m23, m33);
+                z = Math.Atan2(-m12, m11);
+            }
+            else
+            {
+                x = Math.Atan2(-m32, m22);
+                z = 0.0;
+            }
 
             // return the result as a numerics vector
-            return Vector<float>.Build.DenseOfArray(new float[]
-            {
-                (float)euler.Alpha.Radians,
-                (float)euler.Beta.Radians,
-                (float)euler.Gamma.Radians
-            });
+            return Vector<double>.Build.DenseOfArray(new double[]{ x, y, z });
         }
 
-        public static Vector<float> extractRotationsFromMatrix44(Matrix<float> mat44)
+        public static Vector<double> extractRotationsFromMatrix44(Matrix<double> mat44)
         {
             return extractRotationsFromMatrix(mat44.SubMatrix(0, 3, 0, 3));
         }
 
-        public static Vector<float> extractTranslationFromMatrix44(Matrix<float> mat44)
+        public static Vector<double> extractTranslationFromMatrix44(Matrix<double> mat44)
         {
             return mat44.Column(3);
         }
 
-        public static Vector<float> extractScaleFromMatrix44(Matrix<float> mat44)
+        public static Vector<double> extractScaleFromMatrix44(Matrix<double> mat44)
         {
-            return Vector<float>.Build.DenseOfArray(new float[]
+            return Vector<double>.Build.DenseOfArray(new double[]
             {
-                (float)mat44.Column(0).L2Norm(),
-                (float)mat44.Column(1).L2Norm(),
-                (float)mat44.Column(2).L2Norm(),
+                mat44.Column(0).L2Norm(),
+                mat44.Column(1).L2Norm(),
+                mat44.Column(2).L2Norm(),
             });
         }
 
         // ported directly from https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
-        public static Quaternion Mat33toQuat(Matrix<float> mat33)
+        public static Quaternion Mat33toQuat(Matrix<double> mat33)
         {
 
             double tr = mat33[0, 0] + mat33[1, 1] + mat33[2, 2];
@@ -167,21 +201,21 @@ namespace VRC_OSC_ExternallyTrackedObject
             return new Quaternion(qw, qx, qy, qz).Normalized;
         }
 
-        public static Matrix<float> QuatToMat33(Vector<float> quat)
+        public static Matrix<double> QuatToMat33(Vector<double> quat)
         {
-            float x2 = quat[0] * quat[0];
-            float y2 = quat[1] * quat[1];
-            float z2 = quat[2] * quat[2];
-            float w2 = quat[3] * quat[3];
+            double x2 = quat[0] * quat[0];
+            double y2 = quat[1] * quat[1];
+            double z2 = quat[2] * quat[2];
+            double w2 = quat[3] * quat[3];
 
-            float xy = quat[0] * quat[1];
-            float zw = quat[2] * quat[3];
-            float xz = quat[0] * quat[2];
-            float yw = quat[1] * quat[3];
-            float yz = quat[1] * quat[2];
-            float xw = quat[0] * quat[3];
+            double xy = quat[0] * quat[1];
+            double zw = quat[2] * quat[3];
+            double xz = quat[0] * quat[2];
+            double yw = quat[1] * quat[3];
+            double yz = quat[1] * quat[2];
+            double xw = quat[0] * quat[3];
 
-            return Matrix<float>.Build.DenseOfColumnMajor(3, 3, new float[]
+            return Matrix<double>.Build.DenseOfColumnMajor(3, 3, new double[]
             {
                 x2 - y2 - z2 + w2, // 0, 0
                 2 * (xy - zw), // 0, 1

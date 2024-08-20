@@ -14,7 +14,7 @@ namespace VRC_OSC_ExternallyTrackedObject
     {
         public const string DefaultConfigName = "config.json";
         public const string DefaultConfigPath = "jangxx\\VRC Tracked Objects";
-        public const float MaxRelativeDistance = 2; // this is the max distance the tracker can be away from the controller. this is important for scaling the value since vrchat wants a value between -1 and 1
+        public const double MaxRelativeDistance = 2; // this is the max distance the tracker can be away from the controller. this is important for scaling the value since vrchat wants a value between -1 and 1
     }
 
     /// <summary>

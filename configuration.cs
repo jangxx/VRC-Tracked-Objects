@@ -1,5 +1,6 @@
 ﻿using MathNet.Numerics.LinearAlgebra;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 
@@ -37,7 +38,7 @@ namespace VRC_OSC_ExternallyTrackedObject
             RotationZ = other.RotationZ;
         }
 
-        public static AvatarCalibration FromMatrix(Matrix<float> mat44)
+        public static AvatarCalibration FromMatrix(Matrix<double> mat44)
         {
             var rotation = MathUtils.extractRotationsFromMatrix44(mat44);
             var translation = MathUtils.extractTranslationFromMatrix44(mat44);
@@ -52,7 +53,15 @@ namespace VRC_OSC_ExternallyTrackedObject
             calibration.RotationY = rotation[1];
             calibration.RotationZ = rotation[2];
 
+            //Debug.WriteLine("From matrix:\n" + mat44.ToString());
+            //Debug.WriteLine("To calibration: " + calibration.ToString());
+
             return calibration;
+        }
+
+        override public string ToString()
+        {
+            return $"AvatarCalibration(\n\tscale={Scale},\n\ttranslation=({TranslationX}, {TranslationY}, {TranslationZ})\n\trotation=({RotationX}, {RotationY}, {RotationZ})\n)";
         }
     }
 

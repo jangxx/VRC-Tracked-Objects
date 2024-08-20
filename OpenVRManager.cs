@@ -54,8 +54,8 @@ namespace VRC_OSC_ExternallyTrackedObject
 
     public class TrackingDataArgs : EventArgs
     {
-        public Matrix<float>? Controller { get; set; }
-        public Matrix<float>? Tracker { get; set; }
+        public Matrix<double>? Controller { get; set; }
+        public Matrix<double>? Tracker { get; set; }
     }
 
     internal class OpenVRManager
@@ -252,7 +252,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             while (true)
             {
-                if (_cancelTokenSource.Token.WaitHandle.WaitOne(10))
+                if (_cancelTokenSource.Token.WaitHandle.WaitOne(5))
                 {
                     return; // cancellation was requested
                 }
@@ -304,20 +304,20 @@ namespace VRC_OSC_ExternallyTrackedObject
             Key nextKey;
             var currentCalibrationField = CalibrationField.POSX;
 
-            Matrix<float> OverlayXMat = MathUtils.createTransformMatrix44((float)Math.PI, (float)(-Math.PI / 2), (float)(Math.PI / 2), 0, 0.05f, 0, 1, 1, 1);
+            Matrix<double> OverlayXMat = MathUtils.createTransformMatrix44(-Math.PI/2, 0, -Math.PI/2, 0, 0.05, 0, 1, 1, 1);
             HmdMatrix34_t OverlayXMatOVR = new HmdMatrix34_t();
             MathUtils.CopyMat34ToOVR(ref OverlayXMat, ref OverlayXMatOVR);
 
-            Matrix<float> OverlayYMat = MathUtils.createTransformMatrix44(0, 0, 0, 0, 0, 0.05f, 1, 1, 1);
+            Matrix<double> OverlayYMat = MathUtils.createTransformMatrix44(-Math.PI, 0, -Math.PI, 0, 0, -0.05, 1, 1, 1);
             HmdMatrix34_t OverlayYMatOVR = new HmdMatrix34_t();
             MathUtils.CopyMat34ToOVR(ref OverlayYMat, ref OverlayYMatOVR);
 
-            Matrix<float> OverlayZMat = MathUtils.createTransformMatrix44((float)(-Math.PI / 2), (float)Math.PI, (float)(Math.PI / 2), -0.05f, 0, 0, 1, 1, 1);
+            Matrix<double> OverlayZMat = MathUtils.createTransformMatrix44(0, -Math.PI/2, -Math.PI/2 , -0.05, 0, 0, 1, 1, 1);
             HmdMatrix34_t OverlayZMatOVR = new HmdMatrix34_t();
             MathUtils.CopyMat34ToOVR(ref OverlayZMat, ref OverlayZMatOVR);
 
-            Matrix<float> currentTransformMatrix = Matrix<float>.Build.Dense(4, 4);
-            Matrix<float> m = Matrix<float>.Build.Dense(4, 4); // <-- matrix for temporary data storage in calculations
+            Matrix<double> currentTransformMatrix = Matrix<double>.Build.Dense(4, 4);
+            Matrix<double> m = Matrix<double>.Build.Dense(4, 4); // <-- matrix for temporary data storage in calculations
 
             try
             {
@@ -347,16 +347,17 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                 // do one initial update to show the current calibration
                 MathUtils.fillTransformMatrix44(ref currentTransformMatrix,
-                    (float)_currentCalibration.RotationX,
-                    (float)_currentCalibration.RotationY,
-                    (float)_currentCalibration.RotationZ,
-                    (float)_currentCalibration.TranslationX,
-                    (float)_currentCalibration.TranslationY,
-                    (float)_currentCalibration.TranslationZ,
-                    (float)_currentCalibration.Scale,
-                    (float)_currentCalibration.Scale,
-                    (float)_currentCalibration.Scale
+                    _currentCalibration.RotationX,
+                    _currentCalibration.RotationY,
+                    _currentCalibration.RotationZ,
+                    _currentCalibration.TranslationX,
+                    _currentCalibration.TranslationY,
+                    _currentCalibration.TranslationZ,
+                    _currentCalibration.Scale,
+                    _currentCalibration.Scale,
+                    _currentCalibration.Scale
                 );
+
 
                 currentTransformMatrix.Multiply(OverlayXMat, m);
                 MathUtils.CopyMat34ToOVR(ref m, ref OverlayXMatOVR);
@@ -400,7 +401,11 @@ namespace VRC_OSC_ExternallyTrackedObject
                             {
                                 transformMatrixInDirection(ref currentTransformMatrix, currentCalibrationField, 1);
                                 _currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
-                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, CalibrationValues = _currentCalibration };
+                                var args = new CalibrationUpdateArgs() {
+                                    Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE,
+                                    Field = currentCalibrationField,
+                                    CalibrationValues = _currentCalibration
+                                };
                                 var handler = CalibrationUpdate;
                                 handler?.Invoke(this, args);
                                 break;
@@ -411,7 +416,11 @@ namespace VRC_OSC_ExternallyTrackedObject
                             {
                                 transformMatrixInDirection(ref currentTransformMatrix, currentCalibrationField, -1);
                                 _currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
-                                var args = new CalibrationUpdateArgs() { Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE, Field = currentCalibrationField, CalibrationValues = _currentCalibration };
+                                var args = new CalibrationUpdateArgs() {
+                                    Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE,
+                                    Field = currentCalibrationField,
+                                    CalibrationValues = _currentCalibration
+                                };
                                 var handler = CalibrationUpdate;
                                 handler?.Invoke(this, args);
                                 break;
@@ -451,25 +460,25 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
         }
 
-        private void transformMatrixInDirection(ref Matrix<float> calibrationMatrix, CalibrationField field, float direction)
+        private void transformMatrixInDirection(ref Matrix<double> calibrationMatrix, CalibrationField field, double direction)
         {
             switch (field)
             {
                 case CalibrationField.POSX:
                     {
-                        var transform = MathUtils.createTransformMatrix44(0, 0, 0, 0.005f * direction, 0, 0, 1, 1, 1);
+                        var transform = MathUtils.createTransformMatrix44(0, 0, 0, 0.001 * direction, 0, 0, 1, 1, 1);
                         transform.Multiply(calibrationMatrix, calibrationMatrix);
                         return;
                     }
                 case CalibrationField.POSY:
                     {
-                        var transform = MathUtils.createTransformMatrix44(0, 0, 0, 0, 0.005f * direction, 0, 1, 1, 1);
+                        var transform = MathUtils.createTransformMatrix44(0, 0, 0, 0, 0.001 * direction, 0, 1, 1, 1);
                         transform.Multiply(calibrationMatrix, calibrationMatrix);
                         return;
                     }
                 case CalibrationField.POSZ:
                     {
-                        var transform = MathUtils.createTransformMatrix44(0, 0, 0, 0, 0, 0.005f * direction, 1, 1, 1);
+                        var transform = MathUtils.createTransformMatrix44(0, 0, 0, 0, 0, 0.001 * direction, 1, 1, 1);
                         transform.Multiply(calibrationMatrix, calibrationMatrix);
                         return;
                     }
@@ -477,7 +486,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                     {
                         var translate = MathUtils.extractTranslationFromMatrix44(calibrationMatrix).Clone();
                         MathUtils.createTransformMatrix44(0, 0, 0, -translate[0], -translate[1], -translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
-                        MathUtils.createTransformMatrix44(0.01f * direction, 0, 0, 0, 0, 0, 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0.01 * direction, 0, 0, 0, 0, 0, 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
                         MathUtils.createTransformMatrix44(0, 0, 0, translate[0], translate[1], translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
                         return;
                     }
@@ -485,7 +494,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                     {
                         var translate = MathUtils.extractTranslationFromMatrix44(calibrationMatrix).Clone();
                         MathUtils.createTransformMatrix44(0, 0, 0, -translate[0], -translate[1], -translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
-                        MathUtils.createTransformMatrix44(0, 0.01f * direction, 0, 0, 0, 0, 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0, 0.01 * direction, 0, 0, 0, 0, 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
                         MathUtils.createTransformMatrix44(0, 0, 0, translate[0], translate[1], translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
                         return;
                     }
@@ -493,7 +502,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                     {
                         var translate = MathUtils.extractTranslationFromMatrix44(calibrationMatrix).Clone();
                         MathUtils.createTransformMatrix44(0, 0, 0, -translate[0], -translate[1], -translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
-                        MathUtils.createTransformMatrix44(0, 0, 0.01f * direction, 0, 0, 0, 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
+                        MathUtils.createTransformMatrix44(0, 0, 0.01 * direction, 0, 0, 0, 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
                         MathUtils.createTransformMatrix44(0, 0, 0, translate[0], translate[1], translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
                         return;
                     }
@@ -504,9 +513,9 @@ namespace VRC_OSC_ExternallyTrackedObject
                         MathUtils.createTransformMatrix44(
                             0, 0, 0,
                             0, 0, 0,
-                            1 + 0.005f * direction,
-                            1 + 0.005f * direction,
-                            1 + 0.005f * direction
+                            1 + 0.005 * direction,
+                            1 + 0.005 * direction,
+                            1 + 0.005 * direction
                         ).Multiply(calibrationMatrix, calibrationMatrix);
                         MathUtils.createTransformMatrix44(0, 0, 0, translate[0], translate[1], translate[2], 1, 1, 1).Multiply(calibrationMatrix, calibrationMatrix);
                         return;

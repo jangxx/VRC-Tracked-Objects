@@ -192,7 +192,7 @@ namespace VRC_OSC_ExternallyTrackedObject
             _currentThread = null;
         }
 
-        public void SendValues(float posX, float posY, float posZ, float rotX, float rotY, float rotZ, bool force = false)
+        public void SendValues(double posX, double posY, double posZ, double rotX, double rotY, double rotZ, bool force = false)
         {
             if (_oscSender == null || _oscSender.State != OscSocketState.Connected || _currentConfig == null)
             {
@@ -204,12 +204,12 @@ namespace VRC_OSC_ExternallyTrackedObject
                 return; // discard the message to not spam the game with useless messages
             }
 
-            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].PositionX, posX));
-            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].PositionY, posY));
-            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].PositionZ, posZ));
-            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].RotationX, rotX));
-            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].RotationY, rotY));
-            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].RotationZ, rotZ));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].PositionX, (float)posX));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].PositionY, (float)posY));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].PositionZ, (float)posZ));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].RotationX, (float)rotX));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].RotationY, (float)rotY));
+            _oscSender.Send(new OscMessage(_currentConfig[_currentAvatarId].RotationZ, (float)rotZ));
 
             //Debug.WriteLine("[OSC] Sending pos=(" + posX + ", " + posY + ", " + posZ + ") rot=(" + rotX + ", " + rotY + ", " + rotZ + ")");
         }
