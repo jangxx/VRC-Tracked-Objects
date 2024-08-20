@@ -102,7 +102,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                     var relativeTranslate = MathUtils.extractTranslationFromMatrix44(controllerToTracker);
 
-                    var relativeRotation = MathUtils.extractRotationsFromMatrix(controllerToTrackerNS.Inverse().SubMatrix(0, 3, 0, 3));
+                    var relativeRotation = MathUtils.extractRotationsFromMatrixZYX(controllerToTrackerNS.Inverse().SubMatrix(0, 3, 0, 3));
 
                     if (Math.Abs(relativeTranslate[0]) >= Const.MaxRelativeDistance
                         || Math.Abs(relativeTranslate[1]) >= Const.MaxRelativeDistance
