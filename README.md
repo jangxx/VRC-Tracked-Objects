@@ -59,6 +59,7 @@ In a later step you will remove the debug cube and replace it with the object yo
 
 1. Start SteamVR and connect at least the controller of the hand you chose as the anchor as well as the tracker you want to use for the object. Open the app you downloaded and unpacked in step 1. to be greeted with this window:  
 ![menu setup](/resources/screenshot_1.png).  
+Enter a name for your first configuration (e.g. the name of your avatar) and click "Add configuration".
 Open the "Avatars" tab and copy-paste the Avatar ID from Unity into the respective input (you can find the Avatar ID for example in the `Pipeline Manager` on your avatar root or in the Content Manager section in the VRChat SDK window). Enter a name for the avatar and then click **Add**.
 
 2. Select your controller and tracker from the respective drop-down menus. Afterwards you have to start VRChat and switch into your freshly uploaded avatar. For the actual calibration I would recommend you to sit down on your desk with your VR headset so that you can still reach the keyboard while wearing it. Click on the **Start calibration** button to have three sides of a cube appear in the location of your controller. The task is now to align this cube with the one you have added to your avatar. To do this, use the arrow keys on your keyboard to switch through the seven different inputs. Up and down on the keyboard increments and decrements the value respectively, while left and right will switch to the next and previous input. Make sure that the arrows pointing from `X Neg` to `X Pos`, `Y Neg` to `Y Pos` and `Z Neg` to `Z Pos` point along the respective axes on the debug cube, while being perfectly in line with the sides of the cube. Also ensure that the scale matches. If you are satisfied with the result, click on **Stop calibration** to finish the calibration process.
@@ -94,15 +95,16 @@ This is an overview over the entire interface of the app as well as an explanati
 
 6. This button attempts to start tracking. It will show an error if the controller or tracker is not connected or if required fields are empty.
 
-7. This is the global avatar selector. Choose the avatar you want to calibrate or setup parameters for here.
+7. This is the global configuration selector. Here you can choose the configuration you want to calibrate, add avatars to or setup parameters for.
 
 8. Here you can see and edit the calibration values. Do note that these values are only read at the very beginning of the tracking and calibration process. It is therefore not possible to live edit calibration values, not even while in the calibration procedure.
 
 9. This buttons starts the calibration procedure. The currently active field will be highlighted in red. Pressing `Left Arrow` and `Right Arrow` on the keyboard switches between the different fields, while pressing `Up Arrow` and `Down Arrow` increments and decrements the values respectively.
 
-10. This is the list of currently configured avatars. It is currently not possible to edit avatar names or IDs in the app directly, so if you want to rename an avatar, you need to do it in the config file directly.
+10. This is the list of avatars currently existing in the active configuration. It is currently not possible to edit avatar names or IDs in the app directly, so if you want to rename an avatar, you need to do it in the config file directly.
+If you right click an entry in the list, you can copy its ID or move the avatar to a different configuration.
 
-11. Here you can add a new avatar to the system. As mentioned before it's currently not possible to edit a configured avatar so make sure that the ID and name is correct.
+11. Here you can add a new avatar to the active configuration. As mentioned before it's currently not possible to edit a configured avatar so make sure that the ID and name is correct.
 
 # Working principle
 
