@@ -42,20 +42,6 @@ namespace VRC_OSC_ExternallyTrackedObject
             });
         }
 
-        //public static Matrix<double> createStableTransformMatrix44(double rotX, double rotY, double rotZ, double translateX, double translateY, double translateZ, double scaleX, double scaleY, double scaleZ)
-        //{
-
-        //    double[,] data =
-        //    {
-        //        { Cos(rotY)*Cos(rotZ) * scaleX,   (Sin(rotX) * Sin(rotY) * Cos(rotZ) - Cos(rotX) * Sin(rotZ)) * scaleY,  (Cos(rotX) * Sin(rotY) * Cos(rotZ) + Sin(rotX) * Sin(rotZ)) * scaleZ,  translateX },
-        //        { Cos(rotY)*Sin(rotZ) * scaleX,   (Sin(rotX) * Sin(rotY) * Sin(rotZ) + Cos(rotX) * Cos(rotZ)) * scaleY,  (Cos(rotX) * Sin(rotY) * Sin(rotZ) - Sin(rotX) * Cos(rotZ)) * scaleZ,  translateY },
-        //        { -Sin(rotY) * scaleX,            Sin(rotX) * Cos(rotY) * scaleY,                                        Cos(rotX) * Cos(rotY) * scaleZ,                                        translateZ },
-        //        { 0,                              0,                                                                     0,                                                                     1 }
-        //    };
-
-        //    return Matrix<double>.Build.DenseOfArray(data);
-        //}
-
         public static Matrix<double> createTransformMatrix44(double rotX, double rotY, double rotZ, double translateX, double translateY, double translateZ, double scaleX, double scaleY, double scaleZ)
         {
             // copied from https://github.com/mrdoob/three.js/blob/dev/src/math/Matrix4.js
@@ -66,14 +52,6 @@ namespace VRC_OSC_ExternallyTrackedObject
             double d = Sin(rotY);
             double e = Cos(rotZ);
             double f = Sin(rotZ);
-
-            //double[,] data =
-            //{
-            //    { ca*cb * scaleX, (ca*sb*sg - cg*sa) * scaleY, (sa*sg + ca*cg*sb) * scaleZ,  translateX },
-            //    { cb*sa * scaleX, (ca*cg + sa*sb*sg) * scaleY, (cg*sa*sb - ca*sg) * scaleZ,  translateY },
-            //    { -sb * scaleX,   cb*sg * scaleY,              cb*cg * scaleZ,               translateZ },
-            //    { 0,  0,  0,  1 }
-            //};
 
             double[,] data =
             {
@@ -154,8 +132,6 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public static Vector<double> extractRotationsFromMatrixZYX(Matrix<double> mat33)
         {
-            // I have zero idea why this works, but the code below doesn't, since they should both do exactly the same thing - get ZYX euler angles from a matrix
-
             // turn rotation matrix into quaternion first
             var quat = Mat33toQuat(mat33);
 
@@ -169,38 +145,6 @@ namespace VRC_OSC_ExternallyTrackedObject
                 euler.Beta.Radians,
                 euler.Gamma.Radians
             });
-
-            //// copied from https://github.com/mrdoob/three.js/blob/dev/src/math/Euler.js
-            //// and extended to properly deal with scaled matrices
-
-            //double scaleX = mat33.Column(0).L2Norm();
-            //double scaleY = mat33.Column(1).L2Norm();
-            //double scaleZ = mat33.Column(2).L2Norm();
-
-            //double m31 = mat33[2, 0] / scaleX;
-            //double m33 = mat33[2, 2] / scaleZ;
-            //double m12 = mat33[0, 1] / scaleY;
-            //double m11 = mat33[0, 0] / scaleX;
-            //double m32 = mat33[2, 1] / scaleY;
-            //double m22 = mat33[1, 1] / scaleY;
-            //double m21 = mat33[1, 0] / scaleX;
-
-            //double y = Math.Asin(Math.Clamp(m31, -1.0, 1.0));
-            //double x, z;
-
-            //if (Math.Abs(m31) < 0.9999999)
-            //{
-            //    x = Math.Atan2(m32, m33);
-            //    z = Math.Atan2(m21, m11);
-            //}
-            //else
-            //{
-            //    x = 0.0;
-            //    z = Math.Atan2(-m12, m22);
-            //}
-
-            //// return the result as a numerics vector
-            //return Vector<double>.Build.DenseOfArray(new double[] { x, y, z });
         }
 
         public static Vector<double> extractRotationsFromMatrix44(Matrix<double> mat44)
