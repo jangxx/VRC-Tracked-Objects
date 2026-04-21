@@ -42,7 +42,12 @@ namespace VRC_OSC_ExternallyTrackedObject
             set { SetValue(HighlightedProperty, value); }
         }
         public static readonly DependencyProperty HighlightedProperty =
-            DependencyProperty.Register("Highlighted", typeof(bool), typeof(LabeledInput), new PropertyMetadata(null));
+            DependencyProperty.Register(
+                "Highlighted", 
+                typeof(bool), 
+                typeof(LabeledInput), 
+                new PropertyMetadata(false, OnHighlightedChanged)
+            );
 
         public int LabelWidth
         {
@@ -50,39 +55,49 @@ namespace VRC_OSC_ExternallyTrackedObject
             set { SetValue(LabelWidthProperty, value); }
         }
         public static readonly DependencyProperty LabelWidthProperty =
-            DependencyProperty.Register("LabelWidth", typeof(int), typeof(LabeledInput), new PropertyMetadata(null));
+            DependencyProperty.Register("LabelWidth", typeof(int), typeof(LabeledInput), new PropertyMetadata(100));
 
-        public event TextChangedEventHandler? TextChanged;
+        //public event TextChangedEventHandler? TextChanged;
 
         public LabeledInput()
         {
             InitializeComponent();
         }
 
-        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+        private static void OnHighlightedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (e.Property == HighlightedProperty)
-            {
-                bool val = (bool)e.NewValue;
+            var control = (LabeledInput)d;
+            bool val = (bool)e.NewValue;
 
-                if (val)
-                {
-                    OuterShell.Background = new SolidColorBrush(Colors.Red);
-                }
-                else
-                {
-                    OuterShell.Background = null;
-                }
-            }
-            else
-            {
-                base.OnPropertyChanged(e);
-            }
+            control.OuterShell.Background = val
+                ? new SolidColorBrush(Colors.Red)
+                : null;
         }
 
-        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            TextChanged?.Invoke(this, e);
-        }
+        //protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+        //{
+        //    if (e.Property == HighlightedProperty)
+        //    {
+        //        bool val = (bool)e.NewValue;
+
+        //        if (val)
+        //        {
+        //            OuterShell.Background = new SolidColorBrush(Colors.Red);
+        //        }
+        //        else
+        //        {
+        //            OuterShell.Background = null;
+        //        }
+        //    }
+        //    else
+        //    {
+        //        base.OnPropertyChanged(e);
+        //    }
+        //}
+
+        //private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
+        //{
+        //    TextChanged?.Invoke(this, e);
+        //}
     }
 }

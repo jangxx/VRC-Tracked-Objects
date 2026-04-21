@@ -196,7 +196,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             if (error != EVRInitError.None)
             {
-                MessageBox.Show("Error while connecting to SteamVR: " + error.ToString(), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error while connecting to SteamVR: {error.ToString()}. You can still use the app to manage configurations, but you need to start SteamVR and restart the app before you can use it for tracking.", "SteamVR not running", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             } 
             else

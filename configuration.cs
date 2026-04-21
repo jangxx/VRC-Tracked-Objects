@@ -1,31 +1,114 @@
 ﻿using MathNet.Numerics.LinearAlgebra;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace VRC_OSC_ExternallyTrackedObject
 {
-    public class AvatarParams
+    public class AvatarParams : ObservableObject
     {
-        public string Activate { get; set; } = "/avatar/parameters/OSCTrackingEnabled";
-        public string PositionX { get; set; } = "/avatar/parameters/OscTrackedPosX";
-        public string PositionY { get; set; } = "/avatar/parameters/OscTrackedPosY";
-        public string PositionZ { get; set; } = "/avatar/parameters/OscTrackedPosZ";
-        public string RotationX { get; set; } = "/avatar/parameters/OscTrackedRotX";
-        public string RotationY { get; set; } = "/avatar/parameters/OscTrackedRotY";
-        public string RotationZ { get; set; } = "/avatar/parameters/OscTrackedRotZ";
+        private string _activate = "/avatar/parameters/OSCTrackingEnabled";
+        public string Activate {
+            get { return _activate; }
+            set { _activate = value; RaisePropertyChanged(nameof(Activate)); }
+        }
+
+        private string _positionX = "/avatar/parameters/OscTrackedPosX";
+        public string PositionX
+        {
+            get { return _positionX; }
+            set { _positionX = value; RaisePropertyChanged(nameof(PositionX)); }
+        }
+
+        private string _positionY = "/avatar/parameters/OscTrackedPosY";
+        public string PositionY
+        {
+            get { return _positionY; }
+            set { _positionY = value; RaisePropertyChanged(nameof(PositionY)); }
+        }
+
+        private string _positionZ = "/avatar/parameters/OscTrackedPosZ";
+        public string PositionZ
+        {
+            get { return _positionZ; }
+            set { _positionZ = value; RaisePropertyChanged(nameof(PositionZ)); }
+        }
+
+        private string _rotationX = "/avatar/parameters/OscTrackedRotX";
+        public string RotationX
+        {
+            get { return _rotationX; }
+            set { _rotationX = value; RaisePropertyChanged(nameof(RotationX)); }
+        }
+
+        private string _rotationY = "/avatar/parameters/OscTrackedRotY";
+        public string RotationY
+        {
+            get { return _rotationY; }
+            set { _rotationY = value; RaisePropertyChanged(nameof(RotationY)); }
+        }
+
+        private string _rotationZ = "/avatar/parameters/OscTrackedRotZ";
+        public string RotationZ
+        {
+            get { return _rotationZ; }
+            set { _rotationZ = value; RaisePropertyChanged(nameof(RotationZ)); }
+        }
     }
 
-    public class AvatarCalibration
+    public class AvatarCalibration : ObservableObject
     {
-        public double Scale { get; set; } = 1;
-        public double TranslationX { get; set; } = 0;
-        public double TranslationY { get; set; } = 0;
-        public double TranslationZ { get; set; } = 0;
-        public double RotationX { get; set; } = 0;
-        public double RotationY { get; set; } = 0;
-        public double RotationZ { get; set; } = 0;
+        private double _scale = 1;
+        public double Scale
+        {
+            get => _scale;
+            set { _scale = value; RaisePropertyChanged(nameof(Scale)); }
+        }
+
+        private double _translationX = 0;
+        public double TranslationX
+        {
+            get => _translationX;
+            set { _translationX = value; RaisePropertyChanged(nameof(TranslationX)); }
+        }
+
+        private double _translationY = 0;
+        public double TranslationY
+        {
+            get => _translationY;
+            set { _translationY = value; RaisePropertyChanged(nameof(TranslationY)); }
+        }
+
+        private double _translationZ = 0;
+        public double TranslationZ
+        {
+            get => _translationZ;
+            set { _translationZ = value; RaisePropertyChanged(nameof(TranslationZ)); }
+        }
+
+        private double _rotationX = 0;
+        public double RotationX
+        {
+            get => _rotationX;
+            set { _rotationX = value; RaisePropertyChanged(nameof(RotationX)); }
+        }
+
+        private double _rotationY = 0;
+        public double RotationY
+        {
+            get => _rotationY;
+            set { _rotationY = value; RaisePropertyChanged(nameof(RotationY)); }
+        }
+
+        private double _rotationZ = 0;
+        public double RotationZ
+        {
+            get => _rotationZ;
+            set { _rotationZ = value; RaisePropertyChanged(nameof(RotationZ)); }
+        }
 
         public void CopyFrom(AvatarCalibration other)
         {
@@ -65,14 +148,14 @@ namespace VRC_OSC_ExternallyTrackedObject
         }
     }
 
-    internal class AvatarConfigV0
+    public class AvatarConfigV0
     {
         public string Name { get; set; } = "";
         public AvatarParams Parameters { get; set; } = new AvatarParams();
         public AvatarCalibration Calibration { get; set; } = new AvatarCalibration();
     }
 
-    internal class ConfigurationV0
+    public class ConfigurationV0
     {
         public bool Autostart { get; set; } = false;
         public bool AllowAllDevices { get; set; } = false;
@@ -83,37 +166,108 @@ namespace VRC_OSC_ExternallyTrackedObject
         public Dictionary<string, AvatarConfigV0> Avatars { get; set; } = new Dictionary<string, AvatarConfigV0>();
     }
 
-    public class AvatarConfigAvatar
+    public class AvatarConfigAvatar : ObservableObject
     {
-        public string Name { get; set; } = "";
-        public string Id { get; set; } = "";
+        private string _name = "";
+        public string Name {
+            get { return _name; }
+            set { _name = value; RaisePropertyChanged(nameof(Name)); RaisePropertyChanged(nameof(DisplayName)); }
+        }
+
+        private string _id = "";
+        public string Id {
+            get { return _id; }
+            set { _id = value; RaisePropertyChanged(nameof(Id)); RaisePropertyChanged(nameof(DisplayName)); }
+        }
+
+        [JsonIgnore]
+        public string DisplayName
+        {
+            get { return Name + " (" + Id + ")"; }
+        }
     }
 
-    public class AvatarConfig
+    public class AvatarConfig : ObservableObject
     {
-        public string Name { get; set; } = "";
+        private string _name = "";
+        public string Name {
+            get { return _name; }
+            set { _name = value; RaisePropertyChanged(nameof(Name)); RaisePropertyChanged(nameof(DisplayName)); }
+        }
+
         public AvatarParams Parameters { get; set; } = new AvatarParams();
         public AvatarCalibration Calibration { get; set; } = new AvatarCalibration();
-        public List<AvatarConfigAvatar> Avatars { get; set; } = new List<AvatarConfigAvatar>();
+        public ObservableCollection<AvatarConfigAvatar> Avatars { get; set; } = new ObservableCollection<AvatarConfigAvatar>();
+
+        public AvatarConfig()
+        {
+            RegisterObservableCollection("Avatars", this.Avatars);
+        }
+
+        [JsonIgnore]
+        public string DisplayName
+        {
+            get { return Name + " (" + Avatars.Count + " avatars)"; }
+        }
     }
 
-    internal class ConfigurationVersion
+    public class ConfigurationVersion : ObservableObject
     {
         public int Version { get; set; } = 0;
     }
 
-    internal class Configuration : ConfigurationVersion
+    public class Configuration : ConfigurationVersion
     {
-        public bool Autostart { get; set; } = false;
-        public bool AllowAllDevices { get; set; } = false;
-        public string OscInputAddress { get; set; } = "127.0.0.1:9001";
-        public string OscOutputAddress { get; set; } = "127.0.0.1:9000";
-        public string? ControllerSerial { get; set; }
-        public string? TrackerSerial { get; set; }
-        public List<AvatarConfig> Configurations { get; set; } = new List<AvatarConfig>();
+        private bool _autostart = false;
+        public bool Autostart
+        {
+            get { return _autostart; }
+            set { _autostart = value; RaisePropertyChanged(nameof(Autostart)); }
+        }
+
+        private bool _allowAllDevices = false;
+        public bool AllowAllDevices {
+            get { return _allowAllDevices; }
+            set { _allowAllDevices = value; RaisePropertyChanged(nameof(AllowAllDevices)); }
+        }
+
+        private string _oscInputAddress = "127.0.0.1:9001";
+        public string OscInputAddress {
+            get { return _oscInputAddress; }
+            set { _oscInputAddress = value; RaisePropertyChanged(nameof(OscInputAddress)); }
+        }
+
+        private string _oscOutputAddress = "127.0.0.1:9000";
+        public string OscOutputAddress {
+            get { return _oscOutputAddress;  }
+            set { _oscOutputAddress = value; RaisePropertyChanged(nameof(OscOutputAddress)); }
+        }
+
+        private bool _useOscQuery = false;
+        public bool UseOscQuery
+        {
+            get { return _useOscQuery; }
+            set { _useOscQuery = value; RaisePropertyChanged(nameof(UseOscQuery)); }
+        }
+
+        private string? _controllerSerial;
+        public string? ControllerSerial {
+            get { return _controllerSerial; }
+            set { _controllerSerial = value; RaisePropertyChanged(nameof(ControllerSerial)); }
+        }
+
+        private string? _trackerSerial;
+        public string? TrackerSerial {
+            get {  return _trackerSerial; }
+            set { _trackerSerial = value; RaisePropertyChanged(nameof(TrackerSerial)); }
+        }
+
+        public ObservableCollection<AvatarConfig> Configurations { get; set; } = new ObservableCollection<AvatarConfig>();
 
         public Configuration()
         {
+            RegisterObservableCollection("Configurations", this.Configurations);
+
             Version = 1;
         }
 
@@ -146,6 +300,24 @@ namespace VRC_OSC_ExternallyTrackedObject
             }
 
             return config;
+        }
+
+        public void CopyFrom(Configuration other)
+        {
+            Autostart = other.Autostart;
+            AllowAllDevices = other.AllowAllDevices;
+            OscInputAddress = other.OscInputAddress;
+            OscOutputAddress = other.OscOutputAddress;
+            UseOscQuery = other.UseOscQuery;
+            ControllerSerial = other.ControllerSerial;
+            TrackerSerial = other.TrackerSerial;
+
+            Configurations.Clear();
+
+            foreach (var avatarConfig in other.Configurations)
+            {
+                Configurations.Add(avatarConfig);
+            }
         }
     }
 

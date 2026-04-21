@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VRC_OSC_ExternallyTrackedObject"
+        xmlns:converters="clr-namespace:VRC_OSC_ExternallyTrackedObject.Converters"
         mc:Ignorable="d"
         x:Name="MainWindowName"
         PreviewKeyDown="MainWindow_KeyDown"
@@ -14,6 +15,12 @@
         WindowStartupLocation="CenterScreen"
         Closing="MainWindow_Closing"
  >
+    <Window.Resources>
+        <converters:IntConverter x:Key="IntConverter" />
+        <converters:DoubleConverter x:Key="DoubleConverter" />
+        <converters:InvertBooleanConverter x:Key="InvertBooleanConverter" />
+    </Window.Resources>
+
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File" x:Name="FileMenu">
@@ -27,10 +34,22 @@
             <GroupBox Header="Global Settings" DockPanel.Dock="Top" Margin="0,0,0,10">
                 <StackPanel>
                     <Border BorderThickness="5,5,5,5">
-                        <CheckBox Content="Start tracking when launched from config file" ToolTip="Automatically start tracking when this config file is loaded as a launch parameter" x:Name="AutostartCheckbox"></CheckBox>
+                        <CheckBox
+                            Content="Start tracking when launched from config file"
+                            ToolTip="Automatically start tracking when this config file is loaded as a launch parameter"
+                            IsChecked="{Binding CurrentConfig.Autostart, Mode=TwoWay}"
+                        />
                     </Border>
-                    <local:LabeledInput LabelWidth="150" LabelText="OSC Input Address" x:Name="OSCInputAddress"></local:LabeledInput>
-                    <local:LabeledInput LabelWidth="150" LabelText="OSC Output Address" x:Name="OSCOutputAddress"></local:LabeledInput>
+                    <local:LabeledInput
+                        LabelWidth="150"
+                        LabelText="OSC Input Address"
+                        InputText="{Binding CurrentConfig.OscInputAddress, Mode=TwoWay}"
+                    />
+                    <local:LabeledInput
+                        LabelWidth="150"
+                        LabelText="OSC Output Address"
+                        InputText="{Binding CurrentConfig.OscOutputAddress, Mode=TwoWay}"
+                    />
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="40"></ColumnDefinition>
@@ -41,16 +60,25 @@
                             <RowDefinition Height="1*" />
                             <RowDefinition Height="1*" />
                         </Grid.RowDefinitions>
-                        <Button Grid.RowSpan="2" FontSize="9" VerticalAlignment="Center" Height="30" Click="DevicesRefresh_Click">Refresh</Button>
+                        <Button
+                            Grid.RowSpan="2"
+                            FontSize="9"
+                            VerticalAlignment="Center"
+                            Height="30"
+                            Click="DevicesRefresh_Click"
+                            IsEnabled="{Binding WindowData.OpenVRConnected}"
+                        >
+                            Refresh
+                        </Button>
                         <Label  Grid.Column="1" Height="28" Content="Controller" HorizontalAlignment="Left"></Label>
                         <ComboBox
                             Grid.Column="2"
                             Height="20"
                             x:Name="ControllerDropdown"
-                            SelectionChanged="ControllerDropdown_SelectionChanged"
                             DisplayMemberPath="DisplayName"
-                            SelectedValuePath="Serial"
-                            ItemsSource="{Binding ControllerList}"
+                            ItemsSource="{Binding WindowData.ControllerList}"
+                            SelectedItem="{Binding WindowData.SelectedController, Mode=TwoWay}"
+                            IsEnabled="{Binding WindowData.OpenVRConnected}"
                         />
                         <Label Grid.Row="1" Grid.Column="1" Height="28" Content="Tracked Device" HorizontalAlignment="Left"></Label>
                         <ComboBox
@@ -58,10 +86,10 @@
                             Grid.Column="2"
                             Height="20"
                             x:Name="TrackerDropdown"
-                            SelectionChanged="TrackerDropdown_SelectionChanged"
                             DisplayMemberPath="DisplayName"
-                            SelectedValuePath="Serial"
-                            ItemsSource="{Binding TrackerList}"
+                            ItemsSource="{Binding WindowData.TrackerList}"
+                            SelectedItem="{Binding WindowData.SelectedTracker, Mode=TwoWay}"
+                            IsEnabled="{Binding WindowData.OpenVRConnected}"
                         />
                     </Grid>
                 </StackPanel>
@@ -82,12 +110,11 @@
                 <ComboBox
                     Grid.Column="1"
                     DisplayMemberPath="DisplayName"
-                    x:Name="ConfigurationDropdown"
-                    SelectionChanged="ConfigurationDropdown_SelectionChanged"
                     HorizontalContentAlignment="Left"
                     HorizontalAlignment="Stretch"
                     Margin="5,0,5,0"
-                    ItemsSource="{Binding ConfigurationList}"
+                    ItemsSource="{Binding CurrentConfig.Configurations}"
+                    SelectedItem="{Binding WindowData.CurrentAvatarConfig, Mode=TwoWay}"
                 />
                 <Button Grid.Column="2" Click="Btn_deleteConfiguration" x:Name="DeleteConfigurationButton">
                     Delete
@@ -98,13 +125,13 @@
                     <StackPanel>
                         <GroupBox Header="Parameters">
                             <StackPanel>
-                                <local:LabeledInput LabelWidth="150" LabelText="Activate (bool) [optional]" x:Name="ParamTrigger" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Position X (float)" x:Name="ParamPosX" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Position Y (float)" x:Name="ParamPosY" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Position Z (float)" x:Name="ParamPosZ" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation X (float)" x:Name="ParamRotX" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Y (float)" x:Name="ParamRotY" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Z (float)" x:Name="ParamRotZ" TextChanged="LabeledInput_TextChanged"></local:LabeledInput>
+                                <local:LabeledInput LabelWidth="150" LabelText="Activate (bool) [optional]" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.Activate }" />
+                                <local:LabeledInput LabelWidth="150" LabelText="Position X (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.PositionX }" />
+                                <local:LabeledInput LabelWidth="150" LabelText="Position Y (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.PositionY }" />
+                                <local:LabeledInput LabelWidth="150" LabelText="Position Z (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.PositionZ }" />
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation X (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.RotationX }" />
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Y (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.RotationY }" />
+                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Z (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.RotationZ }" />
                             </StackPanel>
                         </GroupBox>
                         <Grid Height="30">
@@ -122,13 +149,41 @@
                     <StackPanel>
                         <GroupBox Header="Calibration Values">
                             <StackPanel>
-                                <local:LabeledInput LabelWidth="150" LabelText="Scale" x:Name="CalibrationScale"/>
-                                <local:LabeledInput LabelWidth="150" LabelText="Translation X" x:Name="CalibrationPosX"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Translation Y" x:Name="CalibrationPosY"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Translation Z" x:Name="CalibrationPosZ"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation X" x:Name="CalibrationRotX"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Y" x:Name="CalibrationRotY"></local:LabeledInput>
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Z" x:Name="CalibrationRotZ"></local:LabeledInput>
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Scale"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Calibration.Scale, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Translation X"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Calibration.TranslationX, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Translation Y"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Calibration.TranslationY, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Translation Z"
+                                    InputText="{Binding WindowData.CurrentAvatarConfig.Calibration.TranslationZ, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Rotation X"
+                                    InputText="{Binding WindowData.CurrentAvatarConfig.Calibration.RotationX, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Rotation Y"
+                                    InputText="{Binding WindowData.CurrentAvatarConfig.Calibration.RotationY, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Rotation Z"
+                                    InputText="{Binding WindowData.CurrentAvatarConfig.Calibration.RotationZ, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                />
                             </StackPanel>
                         </GroupBox>
                         <Button Margin="5,5,5,5" Height="25" x:Name="StartCalibrationButton" Click="StartCalibrationButton_Click">Start Calibration</Button>
@@ -139,33 +194,41 @@
                         <GroupBox Header="Avatars in configuration" x:Name="AvatarsGroupBox">
                             <StackPanel>
                                 <ListBox
-                                    Margin="5,5,5,5"
+                                    Margin="5,0,5,5"
                                     Height="100"
                                     DisplayMemberPath="DisplayName"
-                                    SelectedValuePath="Id"
+                                    ItemsSource="{Binding WindowData.CurrentAvatarConfig.Avatars}"
                                     x:Name="ConfigurationAvatarsListBox"
-                                    ItemsSource="{Binding ConfigurationAvatarList}"
                                  >
                                     <ListBox.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Copy ID" Click="Btn_copyAvatarId"></MenuItem>
-                                            <MenuItem Header="Move to configuration" ItemsSource="{Binding ConfigurationList}">
+                                            <MenuItem Header="Move to configuration" ItemsSource="{Binding CurrentConfig.Configurations}">
                                                 <MenuItem.ItemContainerStyle>
                                                     <Style TargetType="{x:Type MenuItem}">
                                                         <Setter Property="MenuItem.Header" Value="{Binding DisplayName}" />
-                                                        <Setter Property="CommandParameter" Value="{Binding Config}" />
+                                                        <Setter Property="CommandParameter" Value="{Binding}" />
                                                         <EventSetter Event="Click" Handler="Btn_moveAvatarToConfig" />
                                                     </Style>
                                                 </MenuItem.ItemContainerStyle>
                                             </MenuItem>
+                                            <MenuItem Header="Delete from configuration" Click="Btn_deleteAvatarFromConfiguration"></MenuItem>
                                         </ContextMenu>
                                     </ListBox.ContextMenu>
                                 </ListBox>
-                                <Button Margin="5,0,5,5" Height="20" Click="Btn_deleteAvatarFromConfiguration">Delete avatar from configuration</Button>
+                                <Label Margin="5,0,5,5" FontStyle="Italic">(Right click on an avatar for more options)</Label>
                                 <GroupBox Header="Add avatar to configuration">
                                     <StackPanel>
-                                        <local:LabeledInput LabelWidth="150" LabelText="Avatar ID" x:Name="NewAvatarId"></local:LabeledInput>
-                                        <local:LabeledInput LabelWidth="150" LabelText="Avatar Name" x:Name="NewAvatarName"></local:LabeledInput>
+                                        <local:LabeledInput
+                                            LabelWidth="150"
+                                            LabelText="Avatar ID"
+                                            InputText="{Binding WindowData.NewAvatarIdInput, Mode=TwoWay}"
+                                        />
+                                        <local:LabeledInput
+                                            LabelWidth="150"
+                                            LabelText="Avatar Name"
+                                            InputText="{Binding WindowData.NewAvatarNameInput, Mode=TwoWay}"
+                                        />
                                         <Button Margin="5,5,5,5" Height="20" Click="Btn_addAvatarToConfiguration">Add to configuration</Button>
                                     </StackPanel>
                                 </GroupBox>
@@ -177,13 +240,21 @@
                     <StackPanel>
                         <GroupBox Header="Add configuration">
                             <StackPanel>
-                                <local:LabeledInput LabelWidth="50" LabelText="Name" x:Name="NewConfigurationName"></local:LabeledInput>
+                                <local:LabeledInput
+                                    LabelWidth="50"
+                                    LabelText="Name"
+                                    InputText="{Binding WindowData.NewConfigurationNameInput, Mode=TwoWay}"
+                                />
                                 <Button Margin="5,5,5,5" Height="20" Click="Btn_addConfiguration">Add configuration</Button>
                             </StackPanel>
                         </GroupBox>
                         <GroupBox Header="Rename configuration" x:Name="RenameConfigurationGroupBox">
                             <StackPanel>
-                                <local:LabeledInput LabelWidth="50" LabelText="Name" x:Name="RenameConfigurationName"></local:LabeledInput>
+                                <local:LabeledInput
+                                    LabelWidth="50"
+                                    LabelText="Name"
+                                    InputText="{Binding WindowData.RenameConfigurationNameInput, Mode=TwoWay}"
+                                />
                                 <Button Margin="5,5,5,5" Height="20" Click="Btn_renameConfiguration">Rename configuration</Button>
                             </StackPanel>
                         </GroupBox>
