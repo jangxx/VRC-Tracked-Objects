@@ -192,7 +192,11 @@ namespace VRC_OSC_ExternallyTrackedObject
         private string _name = "";
         public string Name {
             get { return _name; }
-            set { _name = value; RaisePropertyChanged(nameof(Name)); RaisePropertyChanged(nameof(DisplayName)); }
+            set {
+                _name = value;
+                RaisePropertyChanged(nameof(Name));
+                RaisePropertyChanged(nameof(DisplayName));
+            }
         }
 
         public AvatarParams Parameters { get; set; } = new AvatarParams();
@@ -201,7 +205,10 @@ namespace VRC_OSC_ExternallyTrackedObject
 
         public AvatarConfig()
         {
-            RegisterObservableCollection("Avatars", this.Avatars);
+            RegisterObservableCollection("Avatars", this.Avatars, () =>
+            {
+                RaisePropertyChanged(nameof(DisplayName));
+            });
         }
 
         [JsonIgnore]

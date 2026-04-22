@@ -31,6 +31,7 @@
     <PackageReference Include="MathNet.Numerics" Version="4.15.0" />
     <PackageReference Include="MathNet.Spatial" Version="0.6.0" />
     <PackageReference Include="Rug.Osc" Version="1.2.5" />
+    <PackageReference Include="VRChat.OSCQuery" Version="0.0.7" />
   </ItemGroup>
 
   <ItemGroup>

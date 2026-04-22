@@ -283,7 +283,9 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             uint controllerHandle = _devices[controllerSn].Handle;
 
-            this._currentCalibration = avatarCalibration;
+            // create a clone of the calibration to work with
+            this._currentCalibration = new AvatarCalibration();
+            this._currentCalibration.CopyFrom(avatarCalibration);
 
             this._cancelTokenSource = new CancellationTokenSource();
 
@@ -401,7 +403,8 @@ namespace VRC_OSC_ExternallyTrackedObject
                             {
                                 transformMatrixInDirection(ref currentTransformMatrix, currentCalibrationField, 1);
                                 _currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
-                                var args = new CalibrationUpdateArgs() {
+                                var args = new CalibrationUpdateArgs()
+                                {
                                     Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE,
                                     Field = currentCalibrationField,
                                     CalibrationValues = _currentCalibration
@@ -416,7 +419,8 @@ namespace VRC_OSC_ExternallyTrackedObject
                             {
                                 transformMatrixInDirection(ref currentTransformMatrix, currentCalibrationField, -1);
                                 _currentCalibration.CopyFrom(AvatarCalibration.FromMatrix(currentTransformMatrix));
-                                var args = new CalibrationUpdateArgs() {
+                                var args = new CalibrationUpdateArgs()
+                                {
                                     Type = CalibrationUpdateArgs.CalibrationUpdateType.CALIBRATION_VALUE,
                                     Field = currentCalibrationField,
                                     CalibrationValues = _currentCalibration

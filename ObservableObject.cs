@@ -47,11 +47,13 @@ namespace VRC_OSC_ExternallyTrackedObject
             RaisePropertyChanged(propertyName);
         }
 
-        protected void RegisterObservableCollection<T>(string propertyName, ObservableCollection<T> collection)
+        protected void RegisterObservableCollection<T>(string propertyName, ObservableCollection<T> collection, Action? extraHandlers = null)
         {
             collection.CollectionChanged += (object? sender, NotifyCollectionChangedEventArgs e) =>
             {
                 this.HandleObervableChildrenChanged(propertyName, e);
+
+                extraHandlers?.Invoke();
             };
         }
     }

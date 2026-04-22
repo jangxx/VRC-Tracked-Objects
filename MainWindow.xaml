@@ -19,11 +19,14 @@
         <converters:IntConverter x:Key="IntConverter" />
         <converters:DoubleConverter x:Key="DoubleConverter" />
         <converters:InvertBooleanConverter x:Key="InvertBooleanConverter" />
+        <converters:OrConverter x:Key="OrConverter" />
+        <converters:AndConverter x:Key="AndConverter" />
+        <converters:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
     </Window.Resources>
 
     <DockPanel>
         <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File" x:Name="FileMenu">
+            <MenuItem Header="_File" IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}">
                 <MenuItem Header="_Save config" Click="Btn_saveDefaultConfig"></MenuItem>
                 <MenuItem Header="_Reload config" Click="Btn_openDefaultConfig"></MenuItem>
                 <MenuItem Header="_Open config from file" Click="Btn_openConfig"></MenuItem>
@@ -35,21 +38,42 @@
                 <StackPanel>
                     <Border BorderThickness="5,5,5,5">
                         <CheckBox
-                            Content="Start tracking when launched from config file"
-                            ToolTip="Automatically start tracking when this config file is loaded as a launch parameter"
+                            Content="Start tracking immediately"
+                            ToolTip="Automatically start tracking when the app is launched with a configuration with this option set."
                             IsChecked="{Binding CurrentConfig.Autostart, Mode=TwoWay}"
+                        />
+                    </Border>
+                    <Border BorderThickness="5,5,5,5">
+                        <CheckBox
+                            Content="Use OSCQuery instead of manual input and output addresses"
+                            ToolTip="OSCQuery will discover the running VRChat instance automatically. It will also fetch the current avatar ID immediately, without needing to switch into it before the app picks it up."
+                            IsChecked="{Binding CurrentConfig.UseOscQuery, Mode=TwoWay}"
                         />
                     </Border>
                     <local:LabeledInput
                         LabelWidth="150"
                         LabelText="OSC Input Address"
                         InputText="{Binding CurrentConfig.OscInputAddress, Mode=TwoWay}"
-                    />
+                    >
+                        <local:LabeledInput.IsEnabled>
+                            <MultiBinding Converter="{StaticResource AndConverter}">
+                                <Binding Path="CurrentConfig.UseOscQuery" Converter="{StaticResource InvertBooleanConverter}"/>
+                                <Binding Path="WindowData.InputsLocked" Converter="{StaticResource InvertBooleanConverter}"/>
+                            </MultiBinding>
+                        </local:LabeledInput.IsEnabled>
+                    </local:LabeledInput>
                     <local:LabeledInput
                         LabelWidth="150"
                         LabelText="OSC Output Address"
                         InputText="{Binding CurrentConfig.OscOutputAddress, Mode=TwoWay}"
-                    />
+                    >
+                        <local:LabeledInput.IsEnabled>
+                            <MultiBinding Converter="{StaticResource AndConverter}">
+                                <Binding Path="CurrentConfig.UseOscQuery" Converter="{StaticResource InvertBooleanConverter}"/>
+                                <Binding Path="WindowData.InputsLocked" Converter="{StaticResource InvertBooleanConverter}"/>
+                            </MultiBinding>
+                        </local:LabeledInput.IsEnabled>
+                    </local:LabeledInput>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="40"></ColumnDefinition>
@@ -66,31 +90,47 @@
                             VerticalAlignment="Center"
                             Height="30"
                             Click="DevicesRefresh_Click"
-                            IsEnabled="{Binding WindowData.OpenVRConnected}"
                         >
+                            <Button.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AndConverter}">
+                                    <Binding Path="WindowData.OpenVRConnected" />
+                                    <Binding Path="WindowData.InputsLocked" Converter="{StaticResource InvertBooleanConverter}" />
+                                </MultiBinding>
+                            </Button.IsEnabled>
+
                             Refresh
                         </Button>
                         <Label  Grid.Column="1" Height="28" Content="Controller" HorizontalAlignment="Left"></Label>
                         <ComboBox
                             Grid.Column="2"
                             Height="20"
-                            x:Name="ControllerDropdown"
                             DisplayMemberPath="DisplayName"
                             ItemsSource="{Binding WindowData.ControllerList}"
                             SelectedItem="{Binding WindowData.SelectedController, Mode=TwoWay}"
-                            IsEnabled="{Binding WindowData.OpenVRConnected}"
-                        />
+                        >
+                            <ComboBox.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AndConverter}">
+                                    <Binding Path="WindowData.OpenVRConnected" />
+                                    <Binding Path="WindowData.InputsLocked" Converter="{StaticResource InvertBooleanConverter}" />
+                                </MultiBinding>
+                            </ComboBox.IsEnabled>
+                        </ComboBox>
                         <Label Grid.Row="1" Grid.Column="1" Height="28" Content="Tracked Device" HorizontalAlignment="Left"></Label>
                         <ComboBox
                             Grid.Row="1"
                             Grid.Column="2"
                             Height="20"
-                            x:Name="TrackerDropdown"
                             DisplayMemberPath="DisplayName"
                             ItemsSource="{Binding WindowData.TrackerList}"
                             SelectedItem="{Binding WindowData.SelectedTracker, Mode=TwoWay}"
-                            IsEnabled="{Binding WindowData.OpenVRConnected}"
-                        />
+                        >
+                            <ComboBox.IsEnabled>
+                                <MultiBinding Converter="{StaticResource AndConverter}">
+                                    <Binding Path="WindowData.OpenVRConnected" />
+                                    <Binding Path="WindowData.InputsLocked" Converter="{StaticResource InvertBooleanConverter}" />
+                                </MultiBinding>
+                            </ComboBox.IsEnabled>
+                        </ComboBox>
                     </Grid>
                 </StackPanel>
             </GroupBox>
@@ -115,23 +155,59 @@
                     Margin="5,0,5,0"
                     ItemsSource="{Binding CurrentConfig.Configurations}"
                     SelectedItem="{Binding WindowData.CurrentAvatarConfig, Mode=TwoWay}"
+                    IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}"
                 />
-                <Button Grid.Column="2" Click="Btn_deleteConfiguration" x:Name="DeleteConfigurationButton">
+                <Button Grid.Column="2" Click="Btn_deleteConfiguration" IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}">
                     Delete
                 </Button>
             </Grid>
             <TabControl x:Name="MainTabs">
-                <TabItem Header="Tracking" x:Name="TrackingTab">
+                <TabItem Header="Tracking" x:Name="TrackingTab" IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}">
                     <StackPanel>
                         <GroupBox Header="Parameters">
                             <StackPanel>
-                                <local:LabeledInput LabelWidth="150" LabelText="Activate (bool) [optional]" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.Activate }" />
-                                <local:LabeledInput LabelWidth="150" LabelText="Position X (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.PositionX }" />
-                                <local:LabeledInput LabelWidth="150" LabelText="Position Y (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.PositionY }" />
-                                <local:LabeledInput LabelWidth="150" LabelText="Position Z (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.PositionZ }" />
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation X (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.RotationX }" />
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Y (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.RotationY }" />
-                                <local:LabeledInput LabelWidth="150" LabelText="Rotation Z (float)" InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.RotationZ }" />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Activate (bool) [optional]"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.Activate }"
+                                    IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Position X (float)"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.PositionX }"
+                                    IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Position Y (float)"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.PositionY }"
+                                    IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Position Z (float)"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.PositionZ }"
+                                    IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Rotation X (float)"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.RotationX }"
+                                    IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Rotation Y (float)"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.RotationY }"
+                                    IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}"
+                                />
+                                <local:LabeledInput
+                                    LabelWidth="150"
+                                    LabelText="Rotation Z (float)"
+                                    InputText="{ Binding WindowData.CurrentAvatarConfig.Parameters.RotationZ }"
+                                    IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}"
+                                />
                             </StackPanel>
                         </GroupBox>
                         <Grid Height="30">
@@ -139,13 +215,13 @@
                                 <ColumnDefinition Width="150"></ColumnDefinition>
                                 <ColumnDefinition Width="*"></ColumnDefinition>
                             </Grid.ColumnDefinitions>
-                            <Label Height="28" Content="Current status" HorizontalAlignment="Left"></Label>
-                            <Label Grid.Column="1" Height="28" Content="inactive" HorizontalAlignment="Left" x:Name="CurrentStatusLabel"></Label>
+                            <Label Height="28" Content="Current status" HorizontalAlignment="Left" />
+                            <Label Grid.Column="1" Height="28" HorizontalAlignment="Left" Content="{Binding WindowData.CurrentStatusText }" d:Content="inactive" />
                         </Grid>
-                        <Button Margin="5,5,5,5" Height="25" x:Name="StartTrackingButton" Click="StartTrackingButton_Click">Start Tracking</Button>
+                        <Button Margin="5,5,5,5" Height="25" Click="StartTrackingButton_Click" Content="{Binding WindowData.StartTrackingButtonText}" d:Content="Start Tracking"/>
                     </StackPanel>
                 </TabItem>
-                <TabItem Header="Calibration" x:Name="CalibrationTab">
+                <TabItem Header="Calibration" x:Name="CalibrationTab" IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}">
                     <StackPanel>
                         <GroupBox Header="Calibration Values">
                             <StackPanel>
@@ -153,48 +229,55 @@
                                     LabelWidth="150"
                                     LabelText="Scale"
                                     InputText="{ Binding WindowData.CurrentAvatarConfig.Calibration.Scale, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                    Highlighted="{Binding WindowData.HighlightedField, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static local:CalibrationField.SCALE}}"
                                 />
                                 <local:LabeledInput
                                     LabelWidth="150"
                                     LabelText="Translation X"
                                     InputText="{ Binding WindowData.CurrentAvatarConfig.Calibration.TranslationX, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                    Highlighted="{Binding WindowData.HighlightedField, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static local:CalibrationField.POSX}}"
                                 />
                                 <local:LabeledInput
                                     LabelWidth="150"
                                     LabelText="Translation Y"
                                     InputText="{ Binding WindowData.CurrentAvatarConfig.Calibration.TranslationY, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                    Highlighted="{Binding WindowData.HighlightedField, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static local:CalibrationField.POSY}}"
                                 />
                                 <local:LabeledInput
                                     LabelWidth="150"
                                     LabelText="Translation Z"
                                     InputText="{Binding WindowData.CurrentAvatarConfig.Calibration.TranslationZ, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                    Highlighted="{Binding WindowData.HighlightedField, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static local:CalibrationField.POSZ}}"
                                 />
                                 <local:LabeledInput
                                     LabelWidth="150"
                                     LabelText="Rotation X"
                                     InputText="{Binding WindowData.CurrentAvatarConfig.Calibration.RotationX, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                    Highlighted="{Binding WindowData.HighlightedField, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static local:CalibrationField.ROTX}}"
                                 />
                                 <local:LabeledInput
                                     LabelWidth="150"
                                     LabelText="Rotation Y"
                                     InputText="{Binding WindowData.CurrentAvatarConfig.Calibration.RotationY, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                    Highlighted="{Binding WindowData.HighlightedField, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static local:CalibrationField.ROTY}}"
                                 />
                                 <local:LabeledInput
                                     LabelWidth="150"
                                     LabelText="Rotation Z"
                                     InputText="{Binding WindowData.CurrentAvatarConfig.Calibration.RotationZ, Converter={StaticResource DoubleConverter}, Mode=TwoWay}"
+                                    Highlighted="{Binding WindowData.HighlightedField, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static local:CalibrationField.ROTZ}}"
                                 />
                             </StackPanel>
                         </GroupBox>
-                        <Button Margin="5,5,5,5" Height="25" x:Name="StartCalibrationButton" Click="StartCalibrationButton_Click">Start Calibration</Button>
+                        <Button Margin="5,5,5,5" Height="25" Click="StartCalibrationButton_Click" Content="{Binding WindowData.StartCalibrationButtonText}" d:Content="Start Calibration"/>
                     </StackPanel>
                 </TabItem>
-                <TabItem Header="Avatars" x:Name="AvatarsTab">
+                <TabItem Header="Avatars" x:Name="AvatarsTab" IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}">
                     <StackPanel>
                         <GroupBox Header="Avatars in configuration" x:Name="AvatarsGroupBox">
                             <StackPanel>
                                 <ListBox
-                                    Margin="5,0,5,5"
+                                    Margin="5,0,5,0"
                                     Height="100"
                                     DisplayMemberPath="DisplayName"
                                     ItemsSource="{Binding WindowData.CurrentAvatarConfig.Avatars}"
@@ -216,7 +299,7 @@
                                         </ContextMenu>
                                     </ListBox.ContextMenu>
                                 </ListBox>
-                                <Label Margin="5,0,5,5" FontStyle="Italic">(Right click on an avatar for more options)</Label>
+                                <Label Margin="5,0,5,15" FontStyle="Italic" Padding="0,0,0,0">(Right click on an avatar for more options)</Label>
                                 <GroupBox Header="Add avatar to configuration">
                                     <StackPanel>
                                         <local:LabeledInput
@@ -236,7 +319,7 @@
                         </GroupBox>
                     </StackPanel>
                 </TabItem>
-                <TabItem Header="Configurations" x:Name="ConfigurationsTab">
+                <TabItem Header="Configurations" x:Name="ConfigurationsTab" IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}">
                     <StackPanel>
                         <GroupBox Header="Add configuration">
                             <StackPanel>

@@ -154,7 +154,7 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             if (config != null)
             {
-                Debug.WriteLine("we know this avatar, creating inverse calibration matrix");
+                Debug.WriteLine("We know this avatar, creating inverse calibration matrix");
 
                 lock (_lock)
                 {

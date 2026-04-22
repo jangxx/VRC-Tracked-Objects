@@ -67,11 +67,42 @@ namespace VRC_OSC_ExternallyTrackedObject
             set { _renameConfigurationNameInput = value; RaisePropertyChanged(nameof(RenameConfigurationNameInput)); }
         }
 
+        private string _currentStatusText = "inactive";
+        public string CurrentStatusText
+        {
+            get { return _currentStatusText; }
+            set { _currentStatusText = value; RaisePropertyChanged(nameof(CurrentStatusText)); }
+        }
+
+        private string _startTrackingButtonText = "Start Tracking";
+        public string StartTrackingButtonText
+        {
+            get { return _startTrackingButtonText; }
+            set { _startTrackingButtonText = value; RaisePropertyChanged(nameof(StartTrackingButtonText)); }
+        }
+
+        private string _startCalibrationButtonText = "Start Calibration";
+        public string StartCalibrationButtonText
+        {
+            get { return _startCalibrationButtonText; }
+            set { _startCalibrationButtonText = value; RaisePropertyChanged($"{nameof(StartCalibrationButtonText)}"); }
+        }
+
+        private CalibrationField? _highlightedField = null;
+        public CalibrationField? HighlightedField
+        {
+            get { return _highlightedField; }
+            set { _highlightedField = value; RaisePropertyChanged(nameof(HighlightedField)); }
+        }
+
         private AvatarConfig? _currentAvatarConfig;
         public AvatarConfig? CurrentAvatarConfig
         {
             get { return _currentAvatarConfig; }
-            set { _currentAvatarConfig = value; RaisePropertyChanged(nameof(CurrentAvatarConfig)); }
+            set {
+                _currentAvatarConfig = value;
+                RaisePropertyChanged(nameof(CurrentAvatarConfig));
+            }
         }
 
         public ObservableCollection<DeviceListItem> ControllerList { get; } = new ObservableCollection<DeviceListItem>();
