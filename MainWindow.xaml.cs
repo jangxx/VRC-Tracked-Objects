@@ -312,7 +312,6 @@ namespace VRC_OSC_ExternallyTrackedObject
 
             var config = new AvatarConfig();
             config.Name = this.WindowData.NewConfigurationNameInput;
-            _currentConfig.Configurations.Add(config);
 
             this.CurrentConfig.Configurations.Add(config);
 
