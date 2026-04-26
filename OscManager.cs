@@ -141,8 +141,11 @@ namespace VRC_OSC_ExternallyTrackedObject
 
                         var avatarNode = tree.GetNodeWithPath("/avatar/change");
                         
-                        if (avatarNode.Value != null && avatarNode.Value.Length == 1 && avatarNode.Value[0].GetType() == typeof(string))
-                        {
+                        if (avatarNode != null &&
+                            avatarNode.Value != null &&
+                            avatarNode.Value.Length == 1 && 
+                            avatarNode.Value[0].GetType() == typeof(string)
+                        ) {
                             this._currentAvatarId = avatarNode.Value[0] as string;
                             HandleAvatarIdChanged();
                         }
