@@ -85,11 +85,11 @@ This is an overview over the entire interface of the app as well as an explanati
 
 1. If this is checked, tracking will begin immediately after the program is launched and a config has been saved to the default location or is supplied as the first launch parameter as a path to a config file.
 
-2. Configure your OSC input and output addresses here. Both are needed, because we need bidirectional communication with VRChat. On the one end we need to listen for the enable parameter and on the other end we need to send in the tracking values.
+2. Configure the OSC input and output here. You can either check the OSCQuery box to have the program automatically attach itself to a VRChat client running on the same PC or manually specify the input and output addresses. Both are needed, because we need bidirectional communication with VRChat. On the one end we need to listen for the "enable" parameter and on the other end we need to send in the tracking values.
 
 3. Here you can select your controller and tracker that the tracking is realtive to. The refresh button queries SteeamVR for a list of controllers. If a name is followed by `(Not found)` it means that the serial number was specified in the config file, but the controller or tracker is not currently connected. After you have connected the tracker, hit `Refresh` to have the app see the device properly.
 
-4. These are the parameters that the app publishes and listens to. The `Activate` parameter is optional. If the field is left blank, tracking data will be fed into the game as soon as a compatible avatar is changed into. 
+4. These are the parameters that the app publishes and listens to. The `Activate` parameter is optional. If the field is left blank, tracking data will be fed into the game as soon as a compatible avatar is detected. 
 
 5. This status field can show the statuses `active` when a compatible avatar is worn and tracking data is sent, `inactive (unknown avatar)` if the current avatar is not compatible, `inactive (disabled)` when the `Activate` parameter is set to false and `inactive` when tracking has not been started.
 
@@ -102,7 +102,7 @@ This is an overview over the entire interface of the app as well as an explanati
 9. This buttons starts the calibration procedure. The currently active field will be highlighted in red. Pressing `Left Arrow` and `Right Arrow` on the keyboard switches between the different fields, while pressing `Up Arrow` and `Down Arrow` increments and decrements the values respectively.
 
 10. This is the list of avatars currently existing in the active configuration. It is currently not possible to edit avatar names or IDs in the app directly, so if you want to rename an avatar, you need to do it in the config file directly.
-If you right click an entry in the list, you can copy its ID or move the avatar to a different configuration.
+If you right click an entry in the list, you can copy its ID, move the avatar to a different configuration or delete it.
 
 11. Here you can add a new avatar to the active configuration. As mentioned before it's currently not possible to edit a configured avatar so make sure that the ID and name is correct.
 

@@ -464,7 +464,7 @@ namespace VRC_OSC_ExternallyTrackedObject
                 string currentController = this.WindowData.SelectedController.Serial;
 
                 this.WindowData.StartCalibrationButtonText = "Stop Calibration";
-                this.WindowData.InputsLocked = false;
+                this.WindowData.InputsLocked = true;
 
                 _openVRManager.StartCalibrationThread(currentController, this.WindowData.CurrentAvatarConfig.Calibration);
             }

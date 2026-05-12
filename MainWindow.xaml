@@ -22,6 +22,7 @@
         <converters:OrConverter x:Key="OrConverter" />
         <converters:AndConverter x:Key="AndConverter" />
         <converters:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
+        <converters:IsNotNullConverter x:Key="IsNotNullConverter" />
     </Window.Resources>
 
     <DockPanel>
@@ -157,7 +158,16 @@
                     SelectedItem="{Binding WindowData.CurrentAvatarConfig, Mode=TwoWay}"
                     IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}"
                 />
-                <Button Grid.Column="2" Click="Btn_deleteConfiguration" IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}">
+                <Button
+                    Grid.Column="2"
+                    Click="Btn_deleteConfiguration"
+                >
+                    <Button.IsEnabled>
+                        <MultiBinding Converter="{StaticResource AndConverter}">
+                            <Binding Path="WindowData.InputsLocked" Converter="{StaticResource InvertBooleanConverter}"/>
+                            <Binding Path="WindowData.CurrentAvatarConfig" Converter="{StaticResource IsNotNullConverter}"/>
+                        </MultiBinding>
+                    </Button.IsEnabled>
                     Delete
                 </Button>
             </Grid>
@@ -218,7 +228,14 @@
                             <Label Height="28" Content="Current status" HorizontalAlignment="Left" />
                             <Label Grid.Column="1" Height="28" HorizontalAlignment="Left" Content="{Binding WindowData.CurrentStatusText }" d:Content="inactive" />
                         </Grid>
-                        <Button Margin="5,5,5,5" Height="25" Click="StartTrackingButton_Click" Content="{Binding WindowData.StartTrackingButtonText}" d:Content="Start Tracking"/>
+                        <Button
+                            Margin="5,5,5,5"
+                            Height="25"
+                            Click="StartTrackingButton_Click"
+                            Content="{Binding WindowData.StartTrackingButtonText}"
+                            d:Content="Start Tracking"
+                            IsEnabled="{Binding WindowData.CurrentAvatarConfig, Converter={StaticResource IsNotNullConverter}}"
+                        />
                     </StackPanel>
                 </TabItem>
                 <TabItem Header="Calibration" x:Name="CalibrationTab" IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}">
@@ -269,7 +286,14 @@
                                 />
                             </StackPanel>
                         </GroupBox>
-                        <Button Margin="5,5,5,5" Height="25" Click="StartCalibrationButton_Click" Content="{Binding WindowData.StartCalibrationButtonText}" d:Content="Start Calibration"/>
+                        <Button
+                            Margin="5,5,5,5"
+                            Height="25"
+                            Click="StartCalibrationButton_Click"
+                            Content="{Binding WindowData.StartCalibrationButtonText}"
+                            d:Content="Start Calibration"
+                            IsEnabled="{Binding WindowData.CurrentAvatarConfig, Converter={StaticResource IsNotNullConverter}}"
+                        />
                     </StackPanel>
                 </TabItem>
                 <TabItem Header="Avatars" x:Name="AvatarsTab" IsEnabled="{Binding WindowData.InputsLocked, Converter={StaticResource InvertBooleanConverter}}">
@@ -306,13 +330,22 @@
                                             LabelWidth="150"
                                             LabelText="Avatar ID"
                                             InputText="{Binding WindowData.NewAvatarIdInput, Mode=TwoWay}"
+                                            IsEnabled="{Binding WindowData.CurrentAvatarConfig, Converter={StaticResource IsNotNullConverter}}"
                                         />
                                         <local:LabeledInput
                                             LabelWidth="150"
                                             LabelText="Avatar Name"
                                             InputText="{Binding WindowData.NewAvatarNameInput, Mode=TwoWay}"
+                                            IsEnabled="{Binding WindowData.CurrentAvatarConfig, Converter={StaticResource IsNotNullConverter}}"
                                         />
-                                        <Button Margin="5,5,5,5" Height="20" Click="Btn_addAvatarToConfiguration">Add to configuration</Button>
+                                        <Button
+                                            Margin="5,5,5,5"
+                                            Height="20"
+                                            Click="Btn_addAvatarToConfiguration"
+                                            IsEnabled="{Binding WindowData.CurrentAvatarConfig, Converter={StaticResource IsNotNullConverter}}"
+                                        >
+                                            Add to configuration
+                                        </Button>
                                     </StackPanel>
                                 </GroupBox>
                             </StackPanel>
@@ -337,8 +370,16 @@
                                     LabelWidth="50"
                                     LabelText="Name"
                                     InputText="{Binding WindowData.RenameConfigurationNameInput, Mode=TwoWay}"
+                                    IsEnabled="{Binding WindowData.CurrentAvatarConfig, Converter={StaticResource IsNotNullConverter}}"
                                 />
-                                <Button Margin="5,5,5,5" Height="20" Click="Btn_renameConfiguration">Rename configuration</Button>
+                                <Button
+                                    Margin="5,5,5,5"
+                                    Height="20"
+                                    Click="Btn_renameConfiguration"
+                                    IsEnabled="{Binding WindowData.CurrentAvatarConfig, Converter={StaticResource IsNotNullConverter}}"
+                                >
+                                    Rename configuration
+                                </Button>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>
