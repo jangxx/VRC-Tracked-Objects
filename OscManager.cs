@@ -127,30 +127,38 @@ namespace VRC_OSC_ExternallyTrackedObject
                     {
                         Debug.WriteLine($"Found VRChat client on {profile.address}:{profile.port}");
 
-                        var tree = await Extensions.GetOSCTree(profile.address, profile.port);
-                        var hostInfo = await Extensions.GetHostInfo(profile.address, profile.port);
-
-                        this._currentOscqueryService = profile.name;
-
-                        // wait until after we have successfully contacted the service before we switch over
-                        if (this._oscSender != null)
+                        try
                         {
-                            this._oscSender.Close();
-                        }
-                        this._oscSender = new OscSender(System.Net.IPAddress.Parse(hostInfo.oscIP), 0, hostInfo.oscPort);
+                            var tree = await Extensions.GetOSCTree(profile.address, profile.port);
+                            var hostInfo = await Extensions.GetHostInfo(profile.address, profile.port);
 
-                        var avatarNode = tree.GetNodeWithPath("/avatar/change");
-                        
-                        if (avatarNode != null &&
-                            avatarNode.Value != null &&
-                            avatarNode.Value.Length == 1 && 
-                            avatarNode.Value[0].GetType() == typeof(string)
-                        ) {
-                            this._currentAvatarId = avatarNode.Value[0] as string;
-                            HandleAvatarIdChanged();
-                        }
+                            this._currentOscqueryService = profile.name;
 
-                        this._oscSender.Connect();
+                            // wait until after we have successfully contacted the service before we switch over
+                            if (this._oscSender != null)
+                            {
+                                this._oscSender.Close();
+                            }
+                            this._oscSender = new OscSender(System.Net.IPAddress.Parse(hostInfo.oscIP), 0, hostInfo.oscPort);
+
+                            var avatarNode = tree.GetNodeWithPath("/avatar/change");
+
+                            if (avatarNode != null &&
+                                avatarNode.Value != null &&
+                                avatarNode.Value.Length == 1 &&
+                                avatarNode.Value[0].GetType() == typeof(string)
+                            )
+                            {
+                                this._currentAvatarId = avatarNode.Value[0] as string;
+                                HandleAvatarIdChanged();
+                            }
+
+                            this._oscSender.Connect();
+                        } catch(Exception ex)
+                        {
+                            Debug.WriteLine("Encountered an error when fetching OSCQuery data");
+                            Debug.WriteLine(ex.ToString());
+                        }
                     }
                 }
             };
